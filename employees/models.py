@@ -22,6 +22,11 @@ class Employee(models.Model):
         ordering = ['employee_id']
         verbose_name = 'Employee'
         verbose_name_plural = 'Employees'
+        permissions = [
+            ('view_employee_section', 'Can access employee management section'),
+            ('manage_employees', 'Can manage employee data'),
+            ('manage_fingerprints', 'Can manage employee fingerprints'),
+        ]
 
     def __str__(self):
         return f"{self.full_name} ({self.employee_id})"
@@ -34,9 +39,11 @@ class Employee(models.Model):
 class Fingerprint(models.Model):
     """Stores fingerprint templates for employees"""
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='fingerprints')
+    device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True)
     finger_index = models.IntegerField()  # 0-9 for 10 fingers
-    template = models.TextField()  # Base64 encoded fingerprint template
+    template = models.BinaryField()  # Binary fingerprint template data
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ['employee', 'finger_index']

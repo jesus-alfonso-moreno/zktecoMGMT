@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Fingerprints - {{ employee.full_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-fingerprint"></i> Manage Fingerprints</h2>
+            <a href="{% url 'employees:employee_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Employees
+            </a>
+        </div>
+
+        <!-- Employee Info Card -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">{{ employee.full_name }}</h5>
+                <p class="card-text">
+                    <strong>Employee ID:</strong> {{ employee.employee_id }}<br>
+                    <strong>User ID:</strong> {{ employee.user_id }}<br>
+                    <strong>Department:</strong> {{ employee.department|default:"N/A" }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Device Selection -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <label for="device-select" class="form-label"><strong>Select Device:</strong></label>
+                <select id="device-select" class="form-select" required>
+                    <option value="">-- Select a device --</option>
+                    {% for device in devices %}
+                        <option value="{{ device.id }}">{{ device.name }} ({{ device.ip_address }})</option>
+                    {% endfor %}
+                </select>
+                {% if not devices %}
+                    <div class="alert alert-warning mt-3">
+                        No active devices available. Please add a device first.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Bulk Operations -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-arrow-down-up"></i> Bulk Operations</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <button id="download-all-btn" class="btn btn-success w-100" onclick="downloadAllFingerprints()">
+                            <i class="bi bi-download"></i> Download All from Device
+                        </button>
+                        <small class="text-muted d-block mt-1">Backup all fingerprints from device to database</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <button id="upload-all-btn" class="btn btn-info w-100" onclick="uploadAllFingerprints()">
+                            <i class="bi bi-upload"></i> Upload All to Device
+                        </button>
+                        <small class="text-muted d-block mt-1">Restore all fingerprints from database to device</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fingerprint Grid -->
+        <div class="row">
+            <!-- Left Hand -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="bi bi-hand-index-thumb"></i> Left Hand</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for temp_id, finger_name in finger_map.items %}
+                            {% if temp_id < 5 %}
+                                <div class="fingerprint-item p-3 mb-2 border rounded">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ finger_name }}</strong> (ID: {{ temp_id }})
+                                            {% if temp_id in enrolled_fingers %}
+                                                <span class="badge bg-success ms-2">
+                                                    <i class="bi bi-check-circle"></i> Enrolled
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary ms-2">
+                                                    <i class="bi bi-x-circle"></i> Empty
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if temp_id in enrolled_fingers %}
+                                                <button class="btn btn-warning" onclick="enrollFinger({{ temp_id }})" title="Re-enroll">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                </button>
+                                                <button class="btn btn-danger" onclick="deleteFinger({{ temp_id }})" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            {% else %}
+                                                <button class="btn btn-primary" onclick="enrollFinger({{ temp_id }})" title="Enroll">
+                                                    <i class="bi bi-plus-circle"></i> Enroll
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Hand -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="bi bi-hand-index-thumb"></i> Right Hand</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for temp_id, finger_name in finger_map.items %}
+                            {% if temp_id >= 5 %}
+                                <div class="fingerprint-item p-3 mb-2 border rounded">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ finger_name }}</strong> (ID: {{ temp_id }})
+                                            {% if temp_id in enrolled_fingers %}
+                                                <span class="badge bg-success ms-2">
+                                                    <i class="bi bi-check-circle"></i> Enrolled
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary ms-2">
+                                                    <i class="bi bi-x-circle"></i> Empty
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if temp_id in enrolled_fingers %}
+                                                <button class="btn btn-warning" onclick="enrollFinger({{ temp_id }})" title="Re-enroll">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                </button>
+                                                <button class="btn btn-danger" onclick="deleteFinger({{ temp_id }})" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            {% else %}
+                                                <button class="btn btn-primary" onclick="enrollFinger({{ temp_id }})" title="Enroll">
+                                                    <i class="bi bi-plus-circle"></i> Enroll
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 id="loading-message">Processing...</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const employeeId = {{ employee.id }};
+    let loadingModal;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    });
+
+    function getSelectedDevice() {
+        const deviceSelect = document.getElementById('device-select');
+        const deviceId = deviceSelect.value;
+
+        if (!deviceId) {
+            alert('Please select a device first');
+            return null;
+        }
+
+        return deviceId;
+    }
+
+    function showLoading(message) {
+        document.getElementById('loading-message').textContent = message;
+        loadingModal.show();
+    }
+
+    function hideLoading() {
+        loadingModal.hide();
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function enrollFinger(tempId) {
+        const deviceId = getSelectedDevice();
+        if (!deviceId) return;
+
+        showLoading('Starting fingerprint enrollment...');
+
+        fetch(`/employees/${employeeId}/fingerprints/enroll/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: `device_id=${deviceId}&temp_id=${tempId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                alert(data.message);
+                // Optionally reload after enrollment completes
+                setTimeout(() => {
+                    if (confirm('Enrollment initiated. Download fingerprints to sync with database?')) {
+                        downloadAllFingerprints();
+                    }
+                }, 2000);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            alert('Error: ' + error);
+        });
+    }
+
+    function downloadAllFingerprints() {
+        const deviceId = getSelectedDevice();
+        if (!deviceId) return;
+
+        showLoading('Downloading fingerprints from device...');
+
+        fetch(`/employees/${employeeId}/fingerprints/download/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: `device_id=${deviceId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            alert('Error: ' + error);
+        });
+    }
+
+    function uploadAllFingerprints() {
+        const deviceId = getSelectedDevice();
+        if (!deviceId) return;
+
+        if (!confirm('This will upload all local fingerprints to the device. Continue?')) {
+            return;
+        }
+
+        showLoading('Uploading fingerprints to device...');
+
+        fetch(`/employees/${employeeId}/fingerprints/upload/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: `device_id=${deviceId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                alert(data.message);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            alert('Error: ' + error);
+        });
+    }
+
+    function deleteFinger(tempId) {
+        const deviceId = getSelectedDevice();
+        if (!deviceId) return;
+
+        if (!confirm('Are you sure you want to delete this fingerprint?')) {
+            return;
+        }
+
+        showLoading('Deleting fingerprint...');
+
+        fetch(`/employees/${employeeId}/fingerprints/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: `device_id=${deviceId}&temp_id=${tempId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            alert('Error: ' + error);
+        });
+    }
+</script>
+{% endblock %}

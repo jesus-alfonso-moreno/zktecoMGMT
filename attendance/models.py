@@ -32,6 +32,11 @@ class AttendanceEvent(models.Model):
         ]
         verbose_name = 'Attendance Event'
         verbose_name_plural = 'Attendance Events'
+        permissions = [
+            ('view_attendance_section', 'Can access attendance tracking section'),
+            ('manage_attendance', 'Can manage attendance data'),
+            ('download_attendance', 'Can download attendance from devices'),
+        ]
 
     def __str__(self):
         employee_name = self.employee.full_name if self.employee else f'User {self.user_id}'

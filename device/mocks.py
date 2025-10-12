@@ -61,6 +61,13 @@ class MockConnection:
                     )
                     self.attendance.append(MockAttendance(user_id, check_out, 1))
 
+        # Store fingerprint templates: {uid: {temp_id: template_data}}
+        self.fingerprint_templates = {
+            1: {0: b'MOCK_TEMPLATE_USER1_FINGER0', 1: b'MOCK_TEMPLATE_USER1_FINGER1'},
+            2: {5: b'MOCK_TEMPLATE_USER2_FINGER5'},
+            3: {0: b'MOCK_TEMPLATE_USER3_FINGER0', 6: b'MOCK_TEMPLATE_USER3_FINGER6'},
+        }
+
     def get_users(self):
         """Return mock users"""
         print("[MOCK] Getting users from device")
@@ -112,6 +119,85 @@ class MockConnection:
         """Simulate disconnection"""
         print("[MOCK] Disconnected from device")
         pass
+
+    # Fingerprint management methods
+
+    def enroll_user(self, uid, temp_id=0):
+        """
+        Simulate starting fingerprint enrollment on device
+
+        Args:
+            uid: User ID
+            temp_id: Finger slot (0-9)
+
+        Returns:
+            bool: Success status
+        """
+        print(f"[MOCK] Starting fingerprint enrollment for user {uid}, finger {temp_id}")
+        print(f"[MOCK] Device is now in enrollment mode. User should scan finger at device.")
+
+        # Simulate successful enrollment by generating a template
+        if uid not in self.fingerprint_templates:
+            self.fingerprint_templates[uid] = {}
+        self.fingerprint_templates[uid][temp_id] = f'MOCK_TEMPLATE_USER{uid}_FINGER{temp_id}'.encode()
+
+        print(f"[MOCK] Enrollment completed successfully")
+        return True
+
+    def get_user_template(self, uid, temp_id):
+        """
+        Download fingerprint template from device
+
+        Args:
+            uid: User ID
+            temp_id: Finger slot (0-9)
+
+        Returns:
+            bytes: Template data or None if not found
+        """
+        template = self.fingerprint_templates.get(uid, {}).get(temp_id)
+        if template:
+            print(f"[MOCK] Downloaded fingerprint template for user {uid}, finger {temp_id}")
+        else:
+            print(f"[MOCK] No fingerprint template found for user {uid}, finger {temp_id}")
+        return template
+
+    def set_user_template(self, uid, temp_id, valid, template):
+        """
+        Upload fingerprint template to device
+
+        Args:
+            uid: User ID
+            temp_id: Finger slot (0-9)
+            valid: Whether template is valid (1 = yes)
+            template: Binary template data
+
+        Returns:
+            bool: Success status
+        """
+        print(f"[MOCK] Uploading fingerprint template for user {uid}, finger {temp_id}")
+        if uid not in self.fingerprint_templates:
+            self.fingerprint_templates[uid] = {}
+        self.fingerprint_templates[uid][temp_id] = template
+        return True
+
+    def delete_user_template(self, uid, temp_id):
+        """
+        Delete fingerprint from device
+
+        Args:
+            uid: User ID
+            temp_id: Finger slot (0-9)
+
+        Returns:
+            bool: Success status
+        """
+        if uid in self.fingerprint_templates and temp_id in self.fingerprint_templates[uid]:
+            del self.fingerprint_templates[uid][temp_id]
+            print(f"[MOCK] Deleted fingerprint template for user {uid}, finger {temp_id}")
+        else:
+            print(f"[MOCK] No fingerprint template to delete for user {uid}, finger {temp_id}")
+        return True
 
 
 class MockZK:

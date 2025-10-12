@@ -38,33 +38,39 @@
 </div>
 
 <!-- Sync Actions -->
-{% if employees %}
-<div class="card mb-3">
+<div class="card mb-3 border-primary">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> Employee Synchronization</h5>
+    </div>
     <div class="card-body">
-        <h5 class="card-title">Sync Actions</h5>
         <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-6">
-                <label class="form-label">Select Device:</label>
+            <div class="col-md-4">
+                <label class="form-label"><strong>Select Device:</strong></label>
                 <select name="device" class="form-select" required>
                     <option value="">Choose device...</option>
-                    {% load device.models as device_models %}
                     {% for device in devices %}
                         <option value="{{ device.pk }}">{{ device.name }} ({{ device.ip_address }})</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-6">
-                <button type="submit" formaction="{% url 'employees:sync_to_device' %}" class="btn btn-success">
-                    <i class="bi bi-cloud-upload"></i> Sync TO Device
+            <div class="col-md-8">
+                <button type="submit" formaction="{% url 'employees:sync_to_device' %}" class="btn btn-success btn-lg me-2">
+                    <i class="bi bi-cloud-upload"></i> Upload Employees TO Device
                 </button>
-                <button type="submit" formaction="{% url 'employees:sync_from_device' %}" class="btn btn-info">
-                    <i class="bi bi-cloud-download"></i> Sync FROM Device
+                <button type="submit" formaction="{% url 'employees:sync_from_device' %}" class="btn btn-info btn-lg">
+                    <i class="bi bi-cloud-download"></i> Download Users FROM Device
                 </button>
             </div>
         </form>
+        <div class="mt-3">
+            <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                <strong>Upload TO Device:</strong> Send all active employees from database to the device.
+                <strong>Download FROM Device:</strong> Import all users from the device into the database.
+            </small>
+        </div>
     </div>
 </div>
-{% endif %}
 
 {% if employees %}
 <div class="table-responsive">
@@ -78,6 +84,7 @@
                 <th>Status</th>
                 <th>Synced</th>
                 <th>Device</th>
+                <th>Sync Actions</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -114,7 +121,25 @@
                     {% endif %}
                 </td>
                 <td>
+                    <div class="btn-group-vertical btn-group-sm" role="group">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-success btn-sm" onclick="syncEmployeeToDevice({{ employee.pk }})" title="Upload employee info to device">
+                                <i class="bi bi-cloud-upload"></i> Info
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="syncFingerprintsToDevice({{ employee.pk }})" title="Upload fingerprints to device">
+                                <i class="bi bi-fingerprint"></i>
+                            </button>
+                        </div>
+                        <button type="button" class="btn btn-info btn-sm" onclick="syncEmployeeFromDevice({{ employee.pk }})" title="Download employee data and fingerprints from device">
+                            <i class="bi bi-cloud-download"></i> Download
+                        </button>
+                    </div>
+                </td>
+                <td>
                     <div class="btn-group btn-group-sm" role="group">
+                        <a href="{% url 'employees:manage_fingerprints' employee.pk %}" class="btn btn-primary" title="Manage Fingerprints">
+                            <i class="bi bi-fingerprint"></i>
+                        </a>
                         <a href="{% url 'employees:employee_edit' employee.pk %}" class="btn btn-warning" title="Edit">
                             <i class="bi bi-pencil"></i>
                         </a>
@@ -164,4 +189,44 @@
     No employees found. <a href="{% url 'employees:employee_add' %}">Add your first employee</a> to get started.
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getDeviceSelection() {
+    const deviceSelect = document.querySelector('select[name="device"]');
+    if (!deviceSelect || !deviceSelect.value) {
+        alert('Please select a device from the dropdown at the top first');
+        return null;
+    }
+    return deviceSelect.value;
+}
+
+function syncEmployeeToDevice(employeeId) {
+    const deviceId = getDeviceSelection();
+    if (!deviceId) return;
+
+    if (confirm('Upload employee information to device?')) {
+        window.location.href = `/employees/${employeeId}/sync-to-device/?device=${deviceId}`;
+    }
+}
+
+function syncFingerprintsToDevice(employeeId) {
+    const deviceId = getDeviceSelection();
+    if (!deviceId) return;
+
+    if (confirm('Upload fingerprint templates to device?')) {
+        window.location.href = `/employees/${employeeId}/fingerprints/upload/?device=${deviceId}&redirect=list`;
+    }
+}
+
+function syncEmployeeFromDevice(employeeId) {
+    const deviceId = getDeviceSelection();
+    if (!deviceId) return;
+
+    if (confirm('Download employee data and fingerprints from device?')) {
+        window.location.href = `/employees/${employeeId}/sync-from-device/?device=${deviceId}`;
+    }
+}
+</script>
 {% endblock %}
