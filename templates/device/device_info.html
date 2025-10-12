@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Device Info - {{ device.name }} - ZKTeco K40 Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">
+                    <i class="bi bi-info-circle"></i> Device Information
+                </h3>
+            </div>
+            <div class="card-body">
+                <h4>{{ device.name }}</h4>
+
+                <table class="table table-bordered mt-3">
+                    <tr>
+                        <th width="30%">IP Address</th>
+                        <td>{{ device.ip_address }}</td>
+                    </tr>
+                    <tr>
+                        <th>Port</th>
+                        <td>{{ device.port }}</td>
+                    </tr>
+                    <tr>
+                        <th>Device ID</th>
+                        <td>{{ device.device_id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td>
+                            {% if device.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if info %}
+                    <tr>
+                        <th>Serial Number</th>
+                        <td>{{ info.serial_number }}</td>
+                    </tr>
+                    <tr>
+                        <th>Firmware Version</th>
+                        <td>{{ info.firmware_version }}</td>
+                    </tr>
+                    <tr>
+                        <th>Platform</th>
+                        <td>{{ info.platform }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Last Sync</th>
+                        <td>
+                            {% if device.last_sync %}
+                                {{ device.last_sync|date:"Y-m-d H:i:s" }}
+                            {% else %}
+                                <span class="text-muted">Never</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Created</th>
+                        <td>{{ device.created_at|date:"Y-m-d H:i:s" }}</td>
+                    </tr>
+                </table>
+
+                {% if error %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <a href="{% url 'device:device_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Devices
+            </a>
+            <a href="{% url 'device:device_edit' device.pk %}" class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Edit Device
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

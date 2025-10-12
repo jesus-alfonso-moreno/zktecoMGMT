@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance Reports - ZKTeco K40 Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-file-earmark-bar-graph"></i> Attendance Reports</h1>
+    <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Events
+    </a>
+</div>
+
+<!-- Report Options -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Report Options</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Report Type:</label>
+                <select name="type" class="form-select">
+                    <option value="daily" {% if report_type == 'daily' %}selected{% endif %}>Daily</option>
+                    <option value="weekly" {% if report_type == 'weekly' %}selected{% endif %}>Weekly</option>
+                    <option value="monthly" {% if report_type == 'monthly' %}selected{% endif %}>Monthly</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Date:</label>
+                <input type="date" name="date" class="form-control" value="{{ date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Employee (optional):</label>
+                <select name="employee" class="form-select">
+                    <option value="">All Employees</option>
+                    {% for emp in employees %}
+                        <option value="{{ emp.pk }}" {% if employee and employee.pk == emp.pk %}selected{% endif %}>
+                            {{ emp.full_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Generate Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Report Results -->
+{% if summary %}
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h4 class="mb-0">
+            {% if report_type == 'daily' %}
+                Daily Report - {{ date|date:"F d, Y" }}
+            {% elif report_type == 'weekly' %}
+                Weekly Report - Week of {{ date|date:"F d, Y" }}
+            {% else %}
+                Monthly Report - {{ date|date:"F Y" }}
+            {% endif %}
+        </h4>
+    </div>
+    <div class="card-body">
+        {% if report_type == 'daily' %}
+            <!-- Daily Report -->
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Hours Worked</th>
+                            <th>Total Events</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp_id, data in summary.items %}
+                        <tr>
+                            <td><strong>{{ data.name }}</strong></td>
+                            <td>
+                                {% if data.check_in %}
+                                    {{ data.check_in|date:"H:i:s" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if data.check_out %}
+                                    {{ data.check_out|date:"H:i:s" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if data.hours_worked %}
+                                    <strong>{{ data.hours_worked|floatformat:2 }} hrs</strong>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ data.events|length }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        {% elif report_type == 'weekly' %}
+            <!-- Weekly Report -->
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Days Present</th>
+                            <th>Total Hours</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp_id, data in summary.items %}
+                        <tr>
+                            <td><strong>{{ data.name }}</strong></td>
+                            <td>{{ data.total_days }}</td>
+                            <td><strong>{{ data.total_hours|floatformat:2 }} hrs</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        {% else %}
+            <!-- Monthly Report -->
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee</th>
+                            <th>Days Present</th>
+                            <th>Total Events</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp_id, data in summary.items %}
+                        <tr>
+                            <td><strong>{{ data.name }}</strong></td>
+                            <td>{{ data.days_present }}</td>
+                            <td>{{ data.total_events }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    Select report options and click "Generate Report" to view attendance summary.
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}Employees - ZKTeco K40 Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-people"></i> Employees</h1>
+    <div>
+        <a href="{% url 'employees:employee_add' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add Employee
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                {{ search_form.search }}
+            </div>
+            <div class="col-md-3">
+                {{ search_form.department }}
+            </div>
+            <div class="col-md-2">
+                {{ search_form.is_active }}
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Search
+                </button>
+                <a href="{% url 'employees:employee_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Sync Actions -->
+{% if employees %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Sync Actions</h5>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label">Select Device:</label>
+                <select name="device" class="form-select" required>
+                    <option value="">Choose device...</option>
+                    {% load device.models as device_models %}
+                    {% for device in devices %}
+                        <option value="{{ device.pk }}">{{ device.name }} ({{ device.ip_address }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <button type="submit" formaction="{% url 'employees:sync_to_device' %}" class="btn btn-success">
+                    <i class="bi bi-cloud-upload"></i> Sync TO Device
+                </button>
+                <button type="submit" formaction="{% url 'employees:sync_from_device' %}" class="btn btn-info">
+                    <i class="bi bi-cloud-download"></i> Sync FROM Device
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if employees %}
+<div class="table-responsive">
+    <table class="table table-hover table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Employee ID</th>
+                <th>Name</th>
+                <th>Department</th>
+                <th>User ID</th>
+                <th>Status</th>
+                <th>Synced</th>
+                <th>Device</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr>
+                <td><strong>{{ employee.employee_id }}</strong></td>
+                <td>{{ employee.full_name }}</td>
+                <td>{{ employee.department|default:"-" }}</td>
+                <td>{{ employee.user_id }}</td>
+                <td>
+                    {% if employee.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if employee.synced_to_device %}
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> Synced
+                        </span>
+                    {% else %}
+                        <span class="badge bg-warning">
+                            <i class="bi bi-exclamation-circle"></i> Not Synced
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if employee.device %}
+                        {{ employee.device.name }}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a href="{% url 'employees:employee_edit' employee.pk %}" class="btn btn-warning" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'employees:employee_delete' employee.pk %}" class="btn btn-danger" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<nav>
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">First</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
+        </li>
+        {% endif %}
+
+        <li class="page-item active">
+            <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </li>
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Last</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    No employees found. <a href="{% url 'employees:employee_add' %}">Add your first employee</a> to get started.
+</div>
+{% endif %}
+{% endblock %}

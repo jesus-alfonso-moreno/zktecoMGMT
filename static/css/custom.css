@@ -1,0 +1,90 @@
+/* Custom styles for ZKTeco K40 Management */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.table-responsive {
+    border-radius: 0.25rem;
+}
+
+.badge {
+    font-size: 0.85rem;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Loading spinner for AJAX operations */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Sync status indicators */
+.sync-status {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.sync-status.synced {
+    background-color: #28a745;
+}
+
+.sync-status.not-synced {
+    background-color: #dc3545;
+}
+
+/* Device status indicators */
+.device-status {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.device-status.active {
+    background-color: #28a745;
+}
+
+.device-status.inactive {
+    background-color: #6c757d;
+}
+
+/* Attendance event colors */
+.punch-check-in {
+    color: #28a745;
+}
+
+.punch-check-out {
+    color: #dc3545;
+}
+
+.punch-break-out {
+    color: #ffc107;
+}
+
+.punch-break-in {
+    color: #17a2b8;
+}

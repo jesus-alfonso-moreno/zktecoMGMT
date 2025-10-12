@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Devices - ZKTeco K40 Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-hdd-network"></i> Devices</h1>
+    <a href="{% url 'device:device_add' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Add Device
+    </a>
+</div>
+
+{% if devices %}
+<div class="table-responsive">
+    <table class="table table-hover table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>IP Address</th>
+                <th>Port</th>
+                <th>Status</th>
+                <th>Serial Number</th>
+                <th>Last Sync</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+            <tr>
+                <td>
+                    <strong>{{ device.name }}</strong>
+                </td>
+                <td>{{ device.ip_address }}</td>
+                <td>{{ device.port }}</td>
+                <td>
+                    {% if device.is_active %}
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> Active
+                        </span>
+                    {% else %}
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-x-circle"></i> Inactive
+                        </span>
+                    {% endif %}
+                </td>
+                <td>{{ device.serial_number|default:"-" }}</td>
+                <td>
+                    {% if device.last_sync %}
+                        {{ device.last_sync|date:"Y-m-d H:i" }}
+                    {% else %}
+                        <span class="text-muted">Never</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a href="{% url 'device:device_info' device.pk %}" class="btn btn-info" title="Device Info">
+                            <i class="bi bi-info-circle"></i>
+                        </a>
+                        <button class="btn btn-success test-connection" data-device-id="{{ device.pk }}" title="Test Connection">
+                            <i class="bi bi-wifi"></i>
+                        </button>
+                        <a href="{% url 'device:device_edit' device.pk %}" class="btn btn-warning" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'device:device_delete' device.pk %}" class="btn btn-danger" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<nav>
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1">First</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        </li>
+        {% endif %}
+
+        <li class="page-item active">
+            <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </li>
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    No devices found. <a href="{% url 'device:device_add' %}">Add your first device</a> to get started.
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.test-connection').forEach(button => {
+    button.addEventListener('click', function() {
+        const deviceId = this.dataset.deviceId;
+        const originalHtml = this.innerHTML;
+
+        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        this.disabled = true;
+
+        fetch(`/device/${deviceId}/test/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✓ ' + data.message);
+                } else {
+                    alert('✗ ' + data.message);
+                }
+                this.innerHTML = originalHtml;
+                this.disabled = false;
+            })
+            .catch(error => {
+                alert('Error testing connection: ' + error);
+                this.innerHTML = originalHtml;
+                this.disabled = false;
+            });
+    });
+});
+</script>
+{% endblock %}
