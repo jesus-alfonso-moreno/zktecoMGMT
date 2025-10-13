@@ -12,9 +12,13 @@ from .reports import get_daily_summary, get_weekly_summary, get_monthly_summary
 from employees.models import Employee
 from device.models import Device
 from device.zk_connector import ZKDeviceConnector
+from accounts.permissions import (
+    AttendanceSectionMixin, attendance_section_required,
+    download_attendance_required, manage_attendance_required
+)
 
 
-class AttendanceListView(ListView):
+class AttendanceListView(AttendanceSectionMixin, ListView):
     """List all attendance events with filters"""
     model = AttendanceEvent
     template_name = 'attendance/attendance_list.html'
@@ -57,6 +61,7 @@ class AttendanceListView(ListView):
         return context
 
 
+@download_attendance_required
 def download_attendance(request):
     """Download attendance events from device"""
     device_id = request.GET.get('device')
@@ -127,6 +132,7 @@ def download_attendance(request):
     return redirect('attendance:attendance_list')
 
 
+@attendance_section_required
 def attendance_report(request):
     """Generate attendance reports"""
     report_type = request.GET.get('type', 'daily')
@@ -174,6 +180,7 @@ def attendance_report(request):
     return render(request, 'attendance/attendance_report.html', context)
 
 
+@attendance_section_required
 def export_attendance(request):
     """Export attendance events to CSV"""
     # Get filtered queryset

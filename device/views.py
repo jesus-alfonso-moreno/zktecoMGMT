@@ -7,9 +7,10 @@ from django.utils import timezone
 from .models import Device
 from .forms import DeviceForm
 from .zk_connector import ZKDeviceConnector
+from accounts.permissions import DeviceSectionMixin, device_section_required, manage_devices_required
 
 
-class DeviceListView(ListView):
+class DeviceListView(DeviceSectionMixin, ListView):
     """List all devices"""
     model = Device
     template_name = 'device/device_list.html'
@@ -17,41 +18,45 @@ class DeviceListView(ListView):
     paginate_by = 10
 
 
-class DeviceCreateView(CreateView):
+class DeviceCreateView(DeviceSectionMixin, CreateView):
     """Create new device"""
     model = Device
     form_class = DeviceForm
     template_name = 'device/device_form.html'
     success_url = reverse_lazy('device:device_list')
+    permission_required = 'device.manage_devices'
 
     def form_valid(self, form):
         messages.success(self.request, 'Device created successfully!')
         return super().form_valid(form)
 
 
-class DeviceUpdateView(UpdateView):
+class DeviceUpdateView(DeviceSectionMixin, UpdateView):
     """Update existing device"""
     model = Device
     form_class = DeviceForm
     template_name = 'device/device_form.html'
     success_url = reverse_lazy('device:device_list')
+    permission_required = 'device.manage_devices'
 
     def form_valid(self, form):
         messages.success(self.request, 'Device updated successfully!')
         return super().form_valid(form)
 
 
-class DeviceDeleteView(DeleteView):
+class DeviceDeleteView(DeviceSectionMixin, DeleteView):
     """Delete device"""
     model = Device
     template_name = 'device/device_confirm_delete.html'
     success_url = reverse_lazy('device:device_list')
+    permission_required = 'device.manage_devices'
 
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Device deleted successfully!')
         return super().delete(request, *args, **kwargs)
 
 
+@device_section_required
 def test_connection(request, pk):
     """Test device connection via AJAX"""
     device = get_object_or_404(Device, pk=pk)
@@ -71,6 +76,7 @@ def test_connection(request, pk):
         })
 
 
+@device_section_required
 def device_info(request, pk):
     """Show detailed device information"""
     device = get_object_or_404(Device, pk=pk)

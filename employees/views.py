@@ -9,6 +9,10 @@ from .models import Employee, Fingerprint
 from .forms import EmployeeForm, EmployeeSearchForm
 from device.models import Device
 from device.zk_connector import ZKDeviceConnector
+from accounts.permissions import (
+    EmployeeSectionMixin, employee_section_required,
+    manage_employees_required, manage_fingerprints_required
+)
 
 # Finger mapping for display
 FINGER_MAP = {
@@ -25,7 +29,7 @@ FINGER_MAP = {
 }
 
 
-class EmployeeListView(ListView):
+class EmployeeListView(EmployeeSectionMixin, ListView):
     """List all employees with search and pagination"""
     model = Employee
     template_name = 'employees/employee_list.html'
@@ -60,24 +64,26 @@ class EmployeeListView(ListView):
         return context
 
 
-class EmployeeCreateView(CreateView):
+class EmployeeCreateView(EmployeeSectionMixin, CreateView):
     """Create new employee"""
     model = Employee
     form_class = EmployeeForm
     template_name = 'employees/employee_form.html'
     success_url = reverse_lazy('employees:employee_list')
+    permission_required = 'employees.manage_employees'
 
     def form_valid(self, form):
         messages.success(self.request, 'Employee created successfully!')
         return super().form_valid(form)
 
 
-class EmployeeUpdateView(UpdateView):
+class EmployeeUpdateView(EmployeeSectionMixin, UpdateView):
     """Update existing employee"""
     model = Employee
     form_class = EmployeeForm
     template_name = 'employees/employee_form.html'
     success_url = reverse_lazy('employees:employee_list')
+    permission_required = 'employees.manage_employees'
 
     def form_valid(self, form):
         # Mark as not synced if data changed
@@ -87,17 +93,19 @@ class EmployeeUpdateView(UpdateView):
         return super().form_valid(form)
 
 
-class EmployeeDeleteView(DeleteView):
+class EmployeeDeleteView(EmployeeSectionMixin, DeleteView):
     """Delete employee"""
     model = Employee
     template_name = 'employees/employee_confirm_delete.html'
     success_url = reverse_lazy('employees:employee_list')
+    permission_required = 'employees.manage_employees'
 
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Employee deleted successfully!')
         return super().delete(request, *args, **kwargs)
 
 
+@manage_employees_required
 def sync_to_device(request):
     """Upload employees to device"""
     device_id = request.GET.get('device')
@@ -158,6 +166,7 @@ def sync_to_device(request):
     return redirect('employees:employee_list')
 
 
+@manage_employees_required
 def sync_from_device(request):
     """Download employees from device and their fingerprints"""
     device_id = request.GET.get('device')
@@ -238,6 +247,7 @@ def sync_from_device(request):
     return redirect('employees:employee_list')
 
 
+@manage_employees_required
 def sync_single_employee_to_device(request, pk):
     """Upload single employee to device"""
     employee = get_object_or_404(Employee, pk=pk)
@@ -282,6 +292,7 @@ def sync_single_employee_to_device(request, pk):
     return redirect('employees:employee_list')
 
 
+@manage_employees_required
 def sync_single_employee_from_device(request, pk):
     """Download single employee data and fingerprints from device"""
     employee = get_object_or_404(Employee, pk=pk)
@@ -352,6 +363,7 @@ def sync_single_employee_from_device(request, pk):
 
 # Fingerprint Management Views
 
+@employee_section_required
 def manage_fingerprints(request, pk):
     """Display fingerprint management page for an employee"""
     employee = get_object_or_404(Employee, pk=pk)
@@ -373,6 +385,7 @@ def manage_fingerprints(request, pk):
     return render(request, 'employees/fingerprint_manage.html', context)
 
 
+@manage_fingerprints_required
 def enroll_fingerprint(request, pk):
     """Start fingerprint enrollment on device"""
     if request.method != 'POST':
@@ -418,6 +431,7 @@ def enroll_fingerprint(request, pk):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+@manage_fingerprints_required
 def download_fingerprints(request, pk):
     """Download fingerprint templates from device to database"""
     if request.method != 'POST':
@@ -463,6 +477,7 @@ def download_fingerprints(request, pk):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+@manage_fingerprints_required
 def upload_fingerprints(request, pk):
     """Upload fingerprint templates from database to device"""
     employee = get_object_or_404(Employee, pk=pk)
@@ -557,6 +572,7 @@ def upload_fingerprints(request, pk):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+@manage_fingerprints_required
 def delete_fingerprint(request, pk):
     """Delete fingerprint from device and database"""
     if request.method != 'POST':
