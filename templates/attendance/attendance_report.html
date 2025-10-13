@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load attendance_filters %}
 
 {% block title %}Attendance Reports - ZKTeco K40 Management{% endblock %}
 
@@ -17,15 +18,24 @@
         <form method="get" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Report Type:</label>
-                <select name="type" class="form-select">
+                <select name="type" class="form-select" id="reportType" onchange="toggleDateInputs()">
+                    <option value="date_range" {% if report_type == 'date_range' %}selected{% endif %}>Date Range</option>
                     <option value="daily" {% if report_type == 'daily' %}selected{% endif %}>Daily</option>
                     <option value="weekly" {% if report_type == 'weekly' %}selected{% endif %}>Weekly</option>
                     <option value="monthly" {% if report_type == 'monthly' %}selected{% endif %}>Monthly</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2" id="singleDateDiv">
                 <label class="form-label">Date:</label>
-                <input type="date" name="date" class="form-control" value="{{ date|date:'Y-m-d' }}">
+                <input type="date" name="date" class="form-control" value="{% if date %}{{ date|date:'Y-m-d' }}{% endif %}">
+            </div>
+            <div class="col-md-2" id="dateFromDiv">
+                <label class="form-label">From Date:</label>
+                <input type="date" name="date_from" class="form-control" value="{% if date_from %}{{ date_from|date:'Y-m-d' }}{% endif %}">
+            </div>
+            <div class="col-md-2" id="dateToDiv">
+                <label class="form-label">To Date:</label>
+                <input type="date" name="date_to" class="form-control" value="{% if date_to %}{{ date_to|date:'Y-m-d' }}{% endif %}">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Employee (optional):</label>
@@ -38,10 +48,10 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">&nbsp;</label>
                 <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-search"></i> Generate Report
+                    <i class="bi bi-search"></i> Generate
                 </button>
             </div>
         </form>
@@ -52,114 +62,184 @@
 {% if summary %}
 <div class="card">
     <div class="card-header bg-info text-white">
-        <h4 class="mb-0">
-            {% if report_type == 'daily' %}
-                Daily Report - {{ date|date:"F d, Y" }}
-            {% elif report_type == 'weekly' %}
-                Weekly Report - Week of {{ date|date:"F d, Y" }}
-            {% else %}
-                Monthly Report - {{ date|date:"F Y" }}
-            {% endif %}
-        </h4>
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h4 class="mb-0">
+                    {% if report_type == 'date_range' %}
+                        Attendance Report - {{ date_from|date:"M d, Y" }} to {{ date_to|date:"M d, Y" }}
+                    {% elif report_type == 'daily' %}
+                        Daily Report - {{ date|date:"F d, Y" }}
+                    {% elif report_type == 'weekly' %}
+                        Weekly Report - Week of {{ date|date:"F d, Y" }}
+                    {% else %}
+                        Monthly Report - {{ date|date:"F Y" }}
+                    {% endif %}
+                    {% if employee %}
+                        - {{ employee.full_name }}
+                    {% endif %}
+                </h4>
+                <small class="text-white">Events between 06:00 and 22:00 only • Pairs with <30min gap are split</small>
+            </div>
+            <a href="{% url 'attendance:export_report' %}?{{ request.GET.urlencode }}" class="btn btn-light btn-sm">
+                <i class="bi bi-download"></i> Download CSV
+            </a>
+        </div>
     </div>
     <div class="card-body">
-        {% if report_type == 'daily' %}
-            <!-- Daily Report -->
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Employee</th>
-                            <th>Check In</th>
-                            <th>Check Out</th>
-                            <th>Hours Worked</th>
-                            <th>Total Events</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for emp_id, data in summary.items %}
-                        <tr>
-                            <td><strong>{{ data.name }}</strong></td>
-                            <td>
-                                {% if data.check_in %}
-                                    {{ data.check_in|date:"H:i:s" }}
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if data.check_out %}
-                                    {{ data.check_out|date:"H:i:s" }}
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if data.hours_worked %}
-                                    <strong>{{ data.hours_worked|floatformat:2 }} hrs</strong>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ data.events|length }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+        {% if report_type == 'date_range' or report_type == 'weekly' or report_type == 'monthly' %}
+            <!-- Date Range Report (grouped by date) -->
+            {% for report_date, employees in summary.items %}
+            <div class="mb-4">
+                <h5 class="bg-light p-2 rounded">
+                    <i class="bi bi-calendar-event"></i> {{ report_date|date:"l, F d, Y" }}
+                </h5>
 
-        {% elif report_type == 'weekly' %}
-            <!-- Weekly Report -->
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Employee</th>
-                            <th>Days Present</th>
-                            <th>Total Hours</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for emp_id, data in summary.items %}
-                        <tr>
-                            <td><strong>{{ data.name }}</strong></td>
-                            <td>{{ data.total_days }}</td>
-                            <td><strong>{{ data.total_hours|floatformat:2 }} hrs</strong></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% for emp_id, data in employees.items %}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>{{ data.name }}</strong>
+                        <span class="badge bg-primary ms-2">{{ data.total_pairs }} pair(s)</span>
+                        <span class="badge bg-success ms-2">{{ data.total_work_hours }} hours</span>
+                        {% if data.unpaired_events > 0 %}
+                        <span class="badge bg-warning ms-2">{{ data.unpaired_events }} unpaired event(s)</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if data.pairs %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr class="table-light">
+                                        <th width="15%">Clock In</th>
+                                        <th width="15%">Clock Out</th>
+                                        <th width="15%">Duration</th>
+                                        <th width="20%">In - Verify</th>
+                                        <th width="20%">Out - Verify</th>
+                                        <th width="15%">Device</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for event_in, event_out, duration_min in data.pairs %}
+                                    <tr>
+                                        <td><i class="bi bi-box-arrow-in-right text-success"></i> {{ event_in.timestamp|date:"H:i:s" }}</td>
+                                        <td><i class="bi bi-box-arrow-right text-danger"></i> {{ event_out.timestamp|date:"H:i:s" }}</td>
+                                        <td>
+                                            <strong>{{ duration_min|minutes_to_hours_minutes }}</strong>
+                                        </td>
+                                        <td><span class="badge bg-secondary">{{ event_in.get_verify_mode_display_custom }}</span></td>
+                                        <td><span class="badge bg-secondary">{{ event_out.get_verify_mode_display_custom }}</span></td>
+                                        <td>{{ event_in.device.name }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-info">
+                                        <td colspan="2"><strong>Total</strong></td>
+                                        <td colspan="4"><strong>{{ data.total_work_hours }} hours ({{ data.total_work_minutes|floatformat:0 }} minutes)</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">No valid pairs found (minimum 30-minute gap required)</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
+            {% empty %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No attendance data found for the selected period.
+            </div>
+            {% endfor %}
 
         {% else %}
-            <!-- Monthly Report -->
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Employee</th>
-                            <th>Days Present</th>
-                            <th>Total Events</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for emp_id, data in summary.items %}
-                        <tr>
-                            <td><strong>{{ data.name }}</strong></td>
-                            <td>{{ data.days_present }}</td>
-                            <td>{{ data.total_events }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <!-- Daily Report (single date) -->
+            {% for emp_id, data in summary.items %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <strong>{{ data.name }}</strong>
+                    <span class="badge bg-primary ms-2">{{ data.total_pairs }} pair(s)</span>
+                    <span class="badge bg-success ms-2">{{ data.total_work_hours }} hours</span>
+                    {% if data.unpaired_events > 0 %}
+                    <span class="badge bg-warning ms-2">{{ data.unpaired_events }} unpaired event(s)</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if data.pairs %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr class="table-light">
+                                    <th width="15%">Clock In</th>
+                                    <th width="15%">Clock Out</th>
+                                    <th width="15%">Duration</th>
+                                    <th width="20%">In - Verify</th>
+                                    <th width="20%">Out - Verify</th>
+                                    <th width="15%">Device</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event_in, event_out, duration_min in data.pairs %}
+                                <tr>
+                                    <td><i class="bi bi-box-arrow-in-right text-success"></i> {{ event_in.timestamp|date:"H:i:s" }}</td>
+                                    <td><i class="bi bi-box-arrow-right text-danger"></i> {{ event_out.timestamp|date:"H:i:s" }}</td>
+                                    <td>
+                                        <strong>{{ duration_min|minutes_to_hours_minutes }}</strong>
+                                    </td>
+                                    <td><span class="badge bg-secondary">{{ event_in.get_verify_mode_display_custom }}</span></td>
+                                    <td><span class="badge bg-secondary">{{ event_out.get_verify_mode_display_custom }}</span></td>
+                                    <td>{{ event_in.device.name }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-info">
+                                    <td colspan="2"><strong>Total</strong></td>
+                                    <td colspan="4"><strong>{{ data.total_work_hours }} hours ({{ data.total_work_minutes|floatformat:0 }} minutes)</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No valid pairs found (minimum 30-minute gap required)</p>
+                    {% endif %}
+                </div>
             </div>
+            {% empty %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No attendance data found for the selected date.
+            </div>
+            {% endfor %}
         {% endif %}
     </div>
 </div>
 {% else %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle"></i>
-    Select report options and click "Generate Report" to view attendance summary.
+    Select report options and click "Generate" to view attendance summary with paired clock-in/out events.
 </div>
 {% endif %}
+
+<script>
+function toggleDateInputs() {
+    const reportType = document.getElementById('reportType').value;
+    const singleDateDiv = document.getElementById('singleDateDiv');
+    const dateFromDiv = document.getElementById('dateFromDiv');
+    const dateToDiv = document.getElementById('dateToDiv');
+
+    if (reportType === 'date_range') {
+        singleDateDiv.style.display = 'none';
+        dateFromDiv.style.display = 'block';
+        dateToDiv.style.display = 'block';
+    } else {
+        singleDateDiv.style.display = 'block';
+        dateFromDiv.style.display = 'none';
+        dateToDiv.style.display = 'none';
+    }
+}
+
+// Call on page load
+document.addEventListener('DOMContentLoaded', toggleDateInputs);
+</script>
 {% endblock %}

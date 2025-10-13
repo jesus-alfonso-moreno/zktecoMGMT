@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import csv
 
 from .models import AttendanceEvent
-from .reports import get_daily_summary, get_weekly_summary, get_monthly_summary
+from .reports import get_daily_summary, get_weekly_summary, get_monthly_summary, get_date_range_summary
 from employees.models import Employee
 from device.models import Device
 from device.zk_connector import ZKDeviceConnector
@@ -38,13 +38,26 @@ class AttendanceListView(AttendanceSectionMixin, ListView):
         if device_id:
             queryset = queryset.filter(device_id=device_id)
 
-        # Filter by date range
-        date_from = self.request.GET.get('date_from')
-        date_to = self.request.GET.get('date_to')
-        if date_from:
-            queryset = queryset.filter(timestamp__gte=date_from)
-        if date_to:
-            queryset = queryset.filter(timestamp__lte=date_to)
+        # Filter by date range - Fixed to properly handle date boundaries
+        date_from_str = self.request.GET.get('date_from')
+        date_to_str = self.request.GET.get('date_to')
+
+        if date_from_str:
+            try:
+                date_from = datetime.strptime(date_from_str, '%Y-%m-%d')
+                # Start of day
+                queryset = queryset.filter(timestamp__gte=date_from)
+            except ValueError:
+                pass
+
+        if date_to_str:
+            try:
+                date_to = datetime.strptime(date_to_str, '%Y-%m-%d')
+                # End of day (23:59:59)
+                date_to_end = date_to.replace(hour=23, minute=59, second=59)
+                queryset = queryset.filter(timestamp__lte=date_to_end)
+            except ValueError:
+                pass
 
         # Filter by punch type
         punch_type = self.request.GET.get('punch_type')
@@ -134,16 +147,24 @@ def download_attendance(request):
 
 @attendance_section_required
 def attendance_report(request):
-    """Generate attendance reports"""
-    report_type = request.GET.get('type', 'daily')
+    """Generate attendance reports with date range support"""
+    report_type = request.GET.get('type', 'date_range')
     employee_id = request.GET.get('employee')
     device_id = request.GET.get('device')
+
+    # Date range parameters
+    date_from_str = request.GET.get('date_from')
+    date_to_str = request.GET.get('date_to')
     date_str = request.GET.get('date', datetime.now().strftime('%Y-%m-%d'))
 
     employee = None
     device = None
     summary = {}
+    date = None
+    date_from = None
+    date_to = None
 
+    # Get employee and device objects
     if employee_id:
         try:
             employee = Employee.objects.get(pk=employee_id)
@@ -156,21 +177,43 @@ def attendance_report(request):
         except Device.DoesNotExist:
             pass
 
+    # Parse dates based on report type
     try:
-        date = datetime.strptime(date_str, '%Y-%m-%d').date()
-    except ValueError:
-        date = datetime.now().date()
+        if report_type == 'date_range':
+            # Use date range
+            if date_from_str and date_to_str:
+                date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+                date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+            else:
+                # Default to current week
+                date_to = datetime.now().date()
+                date_from = date_to - timedelta(days=7)
 
-    if report_type == 'daily':
+            summary = get_date_range_summary(date_from, date_to, employee, device)
+
+        elif report_type == 'daily':
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            summary = get_daily_summary(date, employee, device)
+
+        elif report_type == 'weekly':
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            summary = get_weekly_summary(date, employee, device)
+
+        elif report_type == 'monthly':
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            summary = get_monthly_summary(date.year, date.month, employee, device)
+
+    except ValueError:
+        # Default to today
+        date = datetime.now().date()
         summary = get_daily_summary(date, employee, device)
-    elif report_type == 'weekly':
-        summary = get_weekly_summary(date, employee, device)
-    elif report_type == 'monthly':
-        summary = get_monthly_summary(date.year, date.month, employee, device)
+        report_type = 'daily'
 
     context = {
         'report_type': report_type,
         'date': date,
+        'date_from': date_from,
+        'date_to': date_to,
         'summary': summary,
         'employee': employee,
         'device': device,
@@ -178,6 +221,147 @@ def attendance_report(request):
         'devices': Device.objects.filter(is_active=True),
     }
     return render(request, 'attendance/attendance_report.html', context)
+
+
+@attendance_section_required
+def export_attendance_report(request):
+    """Export attendance report with paired events to CSV"""
+    report_type = request.GET.get('type', 'date_range')
+    employee_id = request.GET.get('employee')
+    device_id = request.GET.get('device')
+
+    # Date range parameters
+    date_from_str = request.GET.get('date_from')
+    date_to_str = request.GET.get('date_to')
+    date_str = request.GET.get('date', datetime.now().strftime('%Y-%m-%d'))
+
+    employee = None
+    device = None
+    summary = {}
+    date = None
+    date_from = None
+    date_to = None
+
+    # Get employee and device objects
+    if employee_id:
+        try:
+            employee = Employee.objects.get(pk=employee_id)
+        except Employee.DoesNotExist:
+            pass
+
+    if device_id:
+        try:
+            device = Device.objects.get(pk=device_id)
+        except Device.DoesNotExist:
+            pass
+
+    # Parse dates based on report type
+    try:
+        if report_type == 'date_range':
+            if date_from_str and date_to_str:
+                date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+                date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+            else:
+                date_to = datetime.now().date()
+                date_from = date_to - timedelta(days=7)
+            summary = get_date_range_summary(date_from, date_to, employee, device)
+
+        elif report_type == 'daily':
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            summary = get_daily_summary(date, employee, device)
+
+        elif report_type == 'weekly':
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            summary = get_weekly_summary(date, employee, device)
+
+        elif report_type == 'monthly':
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            summary = get_monthly_summary(date.year, date.month, employee, device)
+
+    except ValueError:
+        date = datetime.now().date()
+        summary = get_daily_summary(date, employee, device)
+        report_type = 'daily'
+
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+
+    # Generate filename based on report type
+    if report_type == 'date_range':
+        filename = f'attendance_report_{date_from}_{date_to}'
+    elif report_type == 'daily':
+        filename = f'attendance_report_{date}'
+    elif report_type == 'weekly':
+        filename = f'attendance_report_week_{date}'
+    elif report_type == 'monthly':
+        filename = f'attendance_report_{date.year}_{date.month:02d}'
+
+    if employee:
+        filename += f'_{employee.employee_id}'
+
+    filename += '.csv'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+
+    # Write header
+    writer.writerow([
+        'Date',
+        'Employee ID',
+        'Employee Name',
+        'Clock In',
+        'Clock Out',
+        'Duration (minutes)',
+        'Duration (formatted)',
+        'In - Verify Mode',
+        'Out - Verify Mode',
+        'Device'
+    ])
+
+    # Write data based on report type
+    if report_type in ['date_range', 'weekly', 'monthly']:
+        # Date range reports - grouped by date
+        for report_date, employees in sorted(summary.items()):
+            for emp_id, data in employees.items():
+                for event_in, event_out, duration_min in data['pairs']:
+                    hours = int(duration_min // 60)
+                    minutes = int(duration_min % 60)
+                    duration_formatted = f"{hours}h {minutes}m"
+
+                    writer.writerow([
+                        report_date.strftime('%Y-%m-%d'),
+                        event_in.employee.employee_id if event_in.employee else '',
+                        data['name'],
+                        event_in.timestamp.strftime('%H:%M:%S'),
+                        event_out.timestamp.strftime('%H:%M:%S'),
+                        f"{duration_min:.0f}",
+                        duration_formatted,
+                        event_in.get_verify_mode_display_custom(),
+                        event_out.get_verify_mode_display_custom(),
+                        event_in.device.name
+                    ])
+    else:
+        # Daily report - single date
+        for emp_id, data in summary.items():
+            for event_in, event_out, duration_min in data['pairs']:
+                hours = int(duration_min // 60)
+                minutes = int(duration_min % 60)
+                duration_formatted = f"{hours}h {minutes}m"
+
+                writer.writerow([
+                    date.strftime('%Y-%m-%d'),
+                    event_in.employee.employee_id if event_in.employee else '',
+                    data['name'],
+                    event_in.timestamp.strftime('%H:%M:%S'),
+                    event_out.timestamp.strftime('%H:%M:%S'),
+                    f"{duration_min:.0f}",
+                    duration_formatted,
+                    event_in.get_verify_mode_display_custom(),
+                    event_out.get_verify_mode_display_custom(),
+                    event_in.device.name
+                ])
+
+    return response
 
 
 @attendance_section_required
