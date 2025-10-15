@@ -80,7 +80,13 @@ class MockConnection:
 
     def delete_user(self, uid):
         """Simulate deleting user from device"""
-        print(f"[MOCK] Would delete user with uid={uid}")
+        print(f"[MOCK] Deleting user with uid={uid}")
+        # Actually remove user from the mock user list
+        self.users = [user for user in self.users if user.uid != uid]
+        # Also remove their fingerprints
+        if uid in self.fingerprint_templates:
+            del self.fingerprint_templates[uid]
+        print(f"[MOCK] User {uid} deleted successfully")
         return True
 
     def get_attendance(self):

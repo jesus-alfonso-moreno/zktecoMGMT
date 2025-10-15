@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Devices - ZKTeco K40 Management{% endblock %}
+{% block title %}{% trans "Devices" %} - {% trans "ZKTeco K40 Management" %}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-hdd-network"></i> Devices</h1>
+    <h1><i class="bi bi-hdd-network"></i> {% trans "Devices" %}</h1>
     <a href="{% url 'device:device_add' %}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Add Device
+        <i class="bi bi-plus-circle"></i> {% trans "Add Device" %}
     </a>
 </div>
 
@@ -15,13 +16,13 @@
     <table class="table table-hover table-striped">
         <thead class="table-dark">
             <tr>
-                <th>Name</th>
-                <th>IP Address</th>
-                <th>Port</th>
-                <th>Status</th>
-                <th>Serial Number</th>
-                <th>Last Sync</th>
-                <th>Actions</th>
+                <th>{% trans "Name" %}</th>
+                <th>{% trans "IP Address" %}</th>
+                <th>{% trans "Port" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Serial Number" %}</th>
+                <th>{% trans "Last Sync" %}</th>
+                <th>{% trans "Actions" %}</th>
             </tr>
         </thead>
         <tbody>
@@ -35,11 +36,11 @@
                 <td>
                     {% if device.is_active %}
                         <span class="badge bg-success">
-                            <i class="bi bi-check-circle"></i> Active
+                            <i class="bi bi-check-circle"></i> {% trans "Active" %}
                         </span>
                     {% else %}
                         <span class="badge bg-secondary">
-                            <i class="bi bi-x-circle"></i> Inactive
+                            <i class="bi bi-x-circle"></i> {% trans "Inactive" %}
                         </span>
                     {% endif %}
                 </td>
@@ -48,21 +49,21 @@
                     {% if device.last_sync %}
                         {{ device.last_sync|date:"Y-m-d H:i" }}
                     {% else %}
-                        <span class="text-muted">Never</span>
+                        <span class="text-muted">{% trans "Never" %}</span>
                     {% endif %}
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm" role="group">
-                        <a href="{% url 'device:device_info' device.pk %}" class="btn btn-info" title="Device Info">
+                        <a href="{% url 'device:device_info' device.pk %}" class="btn btn-info" title="{% trans 'Device Info' %}">
                             <i class="bi bi-info-circle"></i>
                         </a>
-                        <button class="btn btn-success test-connection" data-device-id="{{ device.pk }}" title="Test Connection">
+                        <button class="btn btn-success test-connection" data-device-id="{{ device.pk }}" title="{% trans 'Test Connection' %}">
                             <i class="bi bi-wifi"></i>
                         </button>
-                        <a href="{% url 'device:device_edit' device.pk %}" class="btn btn-warning" title="Edit">
+                        <a href="{% url 'device:device_edit' device.pk %}" class="btn btn-warning" title="{% trans 'Edit' %}">
                             <i class="bi bi-pencil"></i>
                         </a>
-                        <a href="{% url 'device:device_delete' device.pk %}" class="btn btn-danger" title="Delete">
+                        <a href="{% url 'device:device_delete' device.pk %}" class="btn btn-danger" title="{% trans 'Delete' %}">
                             <i class="bi bi-trash"></i>
                         </a>
                     </div>
@@ -79,23 +80,23 @@
     <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
         <li class="page-item">
-            <a class="page-link" href="?page=1">First</a>
+            <a class="page-link" href="?page=1">{% trans "First" %}</a>
         </li>
         <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
         </li>
         {% endif %}
 
         <li class="page-item active">
-            <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            <span class="page-link">{% blocktrans with number=page_obj.number total=page_obj.paginator.num_pages %}Page {{ number }} of {{ total }}{% endblocktrans %}</span>
         </li>
 
         {% if page_obj.has_next %}
         <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
         </li>
         <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">{% trans "Last" %}</a>
         </li>
         {% endif %}
     </ul>
@@ -105,7 +106,7 @@
 {% else %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle"></i>
-    No devices found. <a href="{% url 'device:device_add' %}">Add your first device</a> to get started.
+    {% trans "No devices found." %} <a href="{% url 'device:device_add' %}">{% trans "Add your first device" %}</a> {% trans "to get started." %}
 </div>
 {% endif %}
 {% endblock %}

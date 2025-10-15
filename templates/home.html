@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Dashboard - ZKTeco K40 Management{% endblock %}
+{% block title %}{% trans "Dashboard" %} - {% trans "ZKTeco K40 Management" %}{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
         <h1 class="mb-4">
-            <i class="bi bi-speedometer2"></i> Dashboard
+            <i class="bi bi-speedometer2"></i> {% trans "Dashboard" %}
         </h1>
     </div>
 </div>
@@ -17,13 +18,13 @@
         <div class="card h-100 border-primary">
             <div class="card-body text-center">
                 <i class="bi bi-hdd-network display-1 text-primary"></i>
-                <h5 class="card-title mt-3">Devices</h5>
-                <p class="card-text">Manage ZKTeco K40 biometric devices</p>
+                <h5 class="card-title mt-3">{% trans "Devices" %}</h5>
+                <p class="card-text">{% trans "Manage ZKTeco K40 biometric devices" %}</p>
                 <a href="{% url 'device:device_list' %}" class="btn btn-primary">
-                    <i class="bi bi-list"></i> View Devices
+                    <i class="bi bi-list"></i> {% trans "View Devices" %}
                 </a>
                 <a href="{% url 'device:device_add' %}" class="btn btn-outline-primary">
-                    <i class="bi bi-plus-circle"></i> Add Device
+                    <i class="bi bi-plus-circle"></i> {% trans "Add Device" %}
                 </a>
             </div>
         </div>
@@ -34,13 +35,13 @@
         <div class="card h-100 border-success">
             <div class="card-body text-center">
                 <i class="bi bi-people display-1 text-success"></i>
-                <h5 class="card-title mt-3">Employees</h5>
-                <p class="card-text">Manage employee data and sync with devices</p>
+                <h5 class="card-title mt-3">{% trans "Employees" %}</h5>
+                <p class="card-text">{% trans "Manage employee data and sync with devices" %}</p>
                 <a href="{% url 'employees:employee_list' %}" class="btn btn-success">
-                    <i class="bi bi-list"></i> View Employees
+                    <i class="bi bi-list"></i> {% trans "View Employees" %}
                 </a>
                 <a href="{% url 'employees:employee_add' %}" class="btn btn-outline-success">
-                    <i class="bi bi-plus-circle"></i> Add Employee
+                    <i class="bi bi-plus-circle"></i> {% trans "Add Employee" %}
                 </a>
             </div>
         </div>
@@ -51,13 +52,13 @@
         <div class="card h-100 border-info">
             <div class="card-body text-center">
                 <i class="bi bi-clock-history display-1 text-info"></i>
-                <h5 class="card-title mt-3">Attendance</h5>
-                <p class="card-text">Track attendance events and generate reports</p>
+                <h5 class="card-title mt-3">{% trans "Attendance" %}</h5>
+                <p class="card-text">{% trans "Track attendance events and generate reports" %}</p>
                 <a href="{% url 'attendance:attendance_list' %}" class="btn btn-info">
-                    <i class="bi bi-list"></i> View Attendance
+                    <i class="bi bi-list"></i> {% trans "View Attendance" %}
                 </a>
                 <a href="{% url 'attendance:attendance_report' %}" class="btn btn-outline-info">
-                    <i class="bi bi-file-earmark-bar-graph"></i> Reports
+                    <i class="bi bi-file-earmark-bar-graph"></i> {% trans "Reports" %}
                 </a>
             </div>
         </div>
@@ -68,21 +69,21 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-light">
-                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Quick Start Guide</h5>
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> {% trans "Quick Start Guide" %}</h5>
             </div>
             <div class="card-body">
                 <ol>
-                    <li><strong>Add a Device:</strong> Go to Devices and add your ZKTeco K40 device with IP address and port.</li>
-                    <li><strong>Add Employees:</strong> Create employee records with unique user IDs (1-65535).</li>
-                    <li><strong>Sync Employees:</strong> Upload employees to the device or download existing users from device.</li>
-                    <li><strong>Download Attendance:</strong> Fetch attendance events from the device.</li>
-                    <li><strong>Generate Reports:</strong> View daily, weekly, or monthly attendance reports.</li>
+                    <li>{% blocktrans %}<strong>Add a Device:</strong> Go to Devices and add your ZKTeco K40 device with IP address and port.{% endblocktrans %}</li>
+                    <li>{% blocktrans %}<strong>Add Employees:</strong> Create employee records with unique user IDs (1-65535).{% endblocktrans %}</li>
+                    <li>{% blocktrans %}<strong>Sync Employees:</strong> Upload employees to the device or download existing users from device.{% endblocktrans %}</li>
+                    <li>{% blocktrans %}<strong>Download Attendance:</strong> Fetch attendance events from the device.{% endblocktrans %}</li>
+                    <li>{% blocktrans %}<strong>Generate Reports:</strong> View daily, weekly, or monthly attendance reports.{% endblocktrans %}</li>
                 </ol>
 
                 <div class="alert alert-warning mt-3">
                     <i class="bi bi-exclamation-triangle"></i>
-                    <strong>Development Mode:</strong> The system is currently running in MOCK mode with simulated data.
-                    To connect to a real device, set <code>ZK_TEST_MODE=False</code> in your <code>.env</code> file.
+                    {% blocktrans %}<strong>Development Mode:</strong> The system is currently running in MOCK mode with simulated data.
+                    To connect to a real device, set <code>ZK_TEST_MODE=False</code> in your <code>.env</code> file.{% endblocktrans %}
                 </div>
             </div>
         </div>

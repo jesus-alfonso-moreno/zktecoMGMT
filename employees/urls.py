@@ -12,6 +12,11 @@ urlpatterns = [
     # Bulk sync operations
     path('sync-to-device/', views.sync_to_device, name='sync_to_device'),
     path('sync-from-device/', views.sync_from_device, name='sync_from_device'),
+    path('bulk-delete/', views.bulk_delete_from_device, name='bulk_delete_from_device'),
+
+    # CSV import/export
+    path('export-csv/', views.export_employees_csv, name='export_csv'),
+    path('import-csv/', views.import_employees_csv, name='import_csv'),
 
     # Single employee sync operations
     path('<int:pk>/sync-to-device/', views.sync_single_employee_to_device, name='sync_single_to_device'),

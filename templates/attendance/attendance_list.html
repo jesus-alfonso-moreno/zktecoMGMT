@@ -1,16 +1,17 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Attendance Events - ZKTeco K40 Management{% endblock %}
+{% block title %}{% trans "Attendance Events" %} - {% trans "ZKTeco K40 Management" %}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-clock-history"></i> Attendance Events</h1>
+    <h1><i class="bi bi-clock-history"></i> {% trans "Attendance Events" %}</h1>
     <div>
         <a href="{% url 'attendance:attendance_report' %}" class="btn btn-info">
-            <i class="bi bi-file-earmark-bar-graph"></i> Reports
+            <i class="bi bi-file-earmark-bar-graph"></i> {% trans "Reports" %}
         </a>
         <a href="{% url 'attendance:export_attendance' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-success">
-            <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+            <i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Export CSV" %}
         </a>
     </div>
 </div>
@@ -18,12 +19,12 @@
 <!-- Download from Device -->
 <div class="card mb-3">
     <div class="card-body">
-        <h5 class="card-title">Download Attendance</h5>
+        <h5 class="card-title">{% trans "Download Attendance" %}</h5>
         <form method="get" action="{% url 'attendance:download_attendance' %}" class="row g-3 align-items-end">
             <div class="col-md-8">
-                <label class="form-label">Select Device:</label>
+                <label class="form-label">{% trans "Select Device:" %}</label>
                 <select name="device" class="form-select" required>
-                    <option value="">Choose device...</option>
+                    <option value="">{% trans "Choose device..." %}</option>
                     {% for device in devices %}
                         <option value="{{ device.pk }}">{{ device.name }} ({{ device.ip_address }})</option>
                     {% endfor %}
@@ -31,7 +32,7 @@
             </div>
             <div class="col-md-4">
                 <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-cloud-download"></i> Download Events
+                    <i class="bi bi-cloud-download"></i> {% trans "Download Events" %}
                 </button>
             </div>
         </form>
@@ -41,12 +42,12 @@
 <!-- Filters -->
 <div class="card mb-3">
     <div class="card-body">
-        <h5 class="card-title">Filter Events</h5>
+        <h5 class="card-title">{% trans "Filter Events" %}</h5>
         <form method="get" class="row g-3">
             <div class="col-md-3">
-                <label class="form-label">Employee:</label>
+                <label class="form-label">{% trans "Employee:" %}</label>
                 <select name="employee" class="form-select">
-                    <option value="">All Employees</option>
+                    <option value="">{% trans "All Employees" %}</option>
                     {% for emp in employees %}
                         <option value="{{ emp.pk }}" {% if request.GET.employee == emp.pk|stringformat:"s" %}selected{% endif %}>
                             {{ emp.full_name }}
@@ -55,9 +56,9 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Device:</label>
+                <label class="form-label">{% trans "Device:" %}</label>
                 <select name="device" class="form-select">
-                    <option value="">All Devices</option>
+                    <option value="">{% trans "All Devices" %}</option>
                     {% for device in devices %}
                         <option value="{{ device.pk }}" {% if request.GET.device == device.pk|stringformat:"s" %}selected{% endif %}>
                             {{ device.name }}
@@ -66,21 +67,21 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label">Date From:</label>
+                <label class="form-label">{% trans "Date From:" %}</label>
                 <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
             </div>
             <div class="col-md-2">
-                <label class="form-label">Date To:</label>
+                <label class="form-label">{% trans "Date To:" %}</label>
                 <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label">&nbsp;</label>
                 <div>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-funnel"></i> Filter
+                        <i class="bi bi-funnel"></i> {% trans "Filter" %}
                     </button>
                     <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">
-                        <i class="bi bi-x-circle"></i> Clear
+                        <i class="bi bi-x-circle"></i> {% trans "Clear" %}
                     </a>
                 </div>
             </div>
@@ -93,12 +94,12 @@
     <table class="table table-hover table-sm">
         <thead class="table-dark">
             <tr>
-                <th>Date & Time</th>
-                <th>Employee</th>
-                <th>User ID</th>
-                <th>Punch Type</th>
-                <th>Verify Mode</th>
-                <th>Device</th>
+                <th>{% trans "Date & Time" %}</th>
+                <th>{% trans "Employee" %}</th>
+                <th>{% trans "User ID" %}</th>
+                <th>{% trans "Punch Type" %}</th>
+                <th>{% trans "Verify Mode" %}</th>
+                <th>{% trans "Device" %}</th>
             </tr>
         </thead>
         <tbody>
@@ -113,7 +114,7 @@
                         <strong>{{ event.employee.full_name }}</strong><br>
                         <small class="text-muted">{{ event.employee.employee_id }}</small>
                     {% else %}
-                        <span class="text-muted">User {{ event.user_id }}</span>
+                        <span class="text-muted">{% blocktrans with user_id=event.user_id %}User {{ user_id }}{% endblocktrans %}</span>
                     {% endif %}
                 </td>
                 <td>{{ event.user_id }}</td>
@@ -152,23 +153,23 @@
     <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
         <li class="page-item">
-            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">First</a>
+            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{% trans "First" %}</a>
         </li>
         <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{% trans "Previous" %}</a>
         </li>
         {% endif %}
 
         <li class="page-item active">
-            <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            <span class="page-link">{% blocktrans with number=page_obj.number total=page_obj.paginator.num_pages %}Page {{ number }} of {{ total }}{% endblocktrans %}</span>
         </li>
 
         {% if page_obj.has_next %}
         <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{% trans "Next" %}</a>
         </li>
         <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last</a>
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{% trans "Last" %}</a>
         </li>
         {% endif %}
     </ul>
@@ -178,7 +179,7 @@
 {% else %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle"></i>
-    No attendance events found. Download attendance from a device to see events here.
+    {% trans "No attendance events found. Download attendance from a device to see events here." %}
 </div>
 {% endif %}
 {% endblock %}

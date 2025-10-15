@@ -1,0 +1,6 @@
+Employee ID,First Name,Last Name,Department,User ID,Card Number,Password,Privilege,Is Active,Device
+EMP001,John,Doe,Engineering,1001,,1234,0,Yes,
+EMP002,Jane,Smith,HR,1002,,5678,0,Yes,
+EMP003,Bob,Johnson,Sales,1003,,9012,0,Yes,
+EMP004,Alice,Williams,Marketing,1004,,3456,14,Yes,
+EMP005,Charlie,Brown,IT,1005,,7890,0,No,

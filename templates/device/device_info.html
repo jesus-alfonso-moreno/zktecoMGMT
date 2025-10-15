@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Device Info - {{ device.name }} - ZKTeco K40 Management{% endblock %}
+{% block title %}{% trans "Device Info" %} - {{ device.name }} - {% trans "ZKTeco K40 Management" %}{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -8,7 +9,7 @@
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h3 class="mb-0">
-                    <i class="bi bi-info-circle"></i> Device Information
+                    <i class="bi bi-info-circle"></i> {% trans "Device Information" %}
                 </h3>
             </div>
             <div class="card-body">
@@ -16,53 +17,53 @@
 
                 <table class="table table-bordered mt-3">
                     <tr>
-                        <th width="30%">IP Address</th>
+                        <th width="30%">{% trans "IP Address" %}</th>
                         <td>{{ device.ip_address }}</td>
                     </tr>
                     <tr>
-                        <th>Port</th>
+                        <th>{% trans "Port" %}</th>
                         <td>{{ device.port }}</td>
                     </tr>
                     <tr>
-                        <th>Device ID</th>
+                        <th>{% trans "Device ID" %}</th>
                         <td>{{ device.device_id }}</td>
                     </tr>
                     <tr>
-                        <th>Status</th>
+                        <th>{% trans "Status" %}</th>
                         <td>
                             {% if device.is_active %}
-                                <span class="badge bg-success">Active</span>
+                                <span class="badge bg-success">{% trans "Active" %}</span>
                             {% else %}
-                                <span class="badge bg-secondary">Inactive</span>
+                                <span class="badge bg-secondary">{% trans "Inactive" %}</span>
                             {% endif %}
                         </td>
                     </tr>
                     {% if info %}
                     <tr>
-                        <th>Serial Number</th>
+                        <th>{% trans "Serial Number" %}</th>
                         <td>{{ info.serial_number }}</td>
                     </tr>
                     <tr>
-                        <th>Firmware Version</th>
+                        <th>{% trans "Firmware Version" %}</th>
                         <td>{{ info.firmware_version }}</td>
                     </tr>
                     <tr>
-                        <th>Platform</th>
+                        <th>{% trans "Platform" %}</th>
                         <td>{{ info.platform }}</td>
                     </tr>
                     {% endif %}
                     <tr>
-                        <th>Last Sync</th>
+                        <th>{% trans "Last Sync" %}</th>
                         <td>
                             {% if device.last_sync %}
                                 {{ device.last_sync|date:"Y-m-d H:i:s" }}
                             {% else %}
-                                <span class="text-muted">Never</span>
+                                <span class="text-muted">{% trans "Never" %}</span>
                             {% endif %}
                         </td>
                     </tr>
                     <tr>
-                        <th>Created</th>
+                        <th>{% trans "Created" %}</th>
                         <td>{{ device.created_at|date:"Y-m-d H:i:s" }}</td>
                     </tr>
                 </table>
@@ -77,10 +78,10 @@
 
         <div class="mt-3">
             <a href="{% url 'device:device_list' %}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Devices
+                <i class="bi bi-arrow-left"></i> {% trans "Back to Devices" %}
             </a>
             <a href="{% url 'device:device_edit' device.pk %}" class="btn btn-warning">
-                <i class="bi bi-pencil"></i> Edit Device
+                <i class="bi bi-pencil"></i> {% trans "Edit Device" %}
             </a>
         </div>
     </div>

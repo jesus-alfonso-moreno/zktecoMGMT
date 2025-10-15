@@ -1,46 +1,47 @@
 {% extends 'base.html' %}
 {% load attendance_filters %}
+{% load i18n %}
 
-{% block title %}Attendance Reports - ZKTeco K40 Management{% endblock %}
+{% block title %}{% trans "Attendance Reports" %} - {% trans "ZKTeco K40 Management" %}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-file-earmark-bar-graph"></i> Attendance Reports</h1>
+    <h1><i class="bi bi-file-earmark-bar-graph"></i> {% trans "Attendance Reports" %}</h1>
     <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i> Back to Events
+        <i class="bi bi-arrow-left"></i> {% trans "Back to Events" %}
     </a>
 </div>
 
 <!-- Report Options -->
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">Report Options</h5>
+        <h5 class="card-title">{% trans "Report Options" %}</h5>
         <form method="get" class="row g-3">
             <div class="col-md-3">
-                <label class="form-label">Report Type:</label>
+                <label class="form-label">{% trans "Report Type:" %}</label>
                 <select name="type" class="form-select" id="reportType" onchange="toggleDateInputs()">
-                    <option value="date_range" {% if report_type == 'date_range' %}selected{% endif %}>Date Range</option>
-                    <option value="daily" {% if report_type == 'daily' %}selected{% endif %}>Daily</option>
-                    <option value="weekly" {% if report_type == 'weekly' %}selected{% endif %}>Weekly</option>
-                    <option value="monthly" {% if report_type == 'monthly' %}selected{% endif %}>Monthly</option>
+                    <option value="date_range" {% if report_type == 'date_range' %}selected{% endif %}>{% trans "Date Range" %}</option>
+                    <option value="daily" {% if report_type == 'daily' %}selected{% endif %}>{% trans "Daily" %}</option>
+                    <option value="weekly" {% if report_type == 'weekly' %}selected{% endif %}>{% trans "Weekly" %}</option>
+                    <option value="monthly" {% if report_type == 'monthly' %}selected{% endif %}>{% trans "Monthly" %}</option>
                 </select>
             </div>
             <div class="col-md-2" id="singleDateDiv">
-                <label class="form-label">Date:</label>
+                <label class="form-label">{% trans "Date:" %}</label>
                 <input type="date" name="date" class="form-control" value="{% if date %}{{ date|date:'Y-m-d' }}{% endif %}">
             </div>
             <div class="col-md-2" id="dateFromDiv">
-                <label class="form-label">From Date:</label>
+                <label class="form-label">{% trans "From Date:" %}</label>
                 <input type="date" name="date_from" class="form-control" value="{% if date_from %}{{ date_from|date:'Y-m-d' }}{% endif %}">
             </div>
             <div class="col-md-2" id="dateToDiv">
-                <label class="form-label">To Date:</label>
+                <label class="form-label">{% trans "To Date:" %}</label>
                 <input type="date" name="date_to" class="form-control" value="{% if date_to %}{{ date_to|date:'Y-m-d' }}{% endif %}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Employee (optional):</label>
+                <label class="form-label">{% trans "Employee (optional):" %}</label>
                 <select name="employee" class="form-select">
-                    <option value="">All Employees</option>
+                    <option value="">{% trans "All Employees" %}</option>
                     {% for emp in employees %}
                         <option value="{{ emp.pk }}" {% if employee and employee.pk == emp.pk %}selected{% endif %}>
                             {{ emp.full_name }}
@@ -51,7 +52,7 @@
             <div class="col-md-2">
                 <label class="form-label">&nbsp;</label>
                 <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-search"></i> Generate
+                    <i class="bi bi-search"></i> {% trans "Generate" %}
                 </button>
             </div>
         </form>
@@ -66,22 +67,22 @@
             <div>
                 <h4 class="mb-0">
                     {% if report_type == 'date_range' %}
-                        Attendance Report - {{ date_from|date:"M d, Y" }} to {{ date_to|date:"M d, Y" }}
+                        {% blocktrans with from=date_from to=date_to %}Attendance Report - {{ from }} to {{ to }}{% endblocktrans %}
                     {% elif report_type == 'daily' %}
-                        Daily Report - {{ date|date:"F d, Y" }}
+                        {% blocktrans with date=date %}Daily Report - {{ date }}{% endblocktrans %}
                     {% elif report_type == 'weekly' %}
-                        Weekly Report - Week of {{ date|date:"F d, Y" }}
+                        {% blocktrans with date=date %}Weekly Report - Week of {{ date }}{% endblocktrans %}
                     {% else %}
-                        Monthly Report - {{ date|date:"F Y" }}
+                        {% blocktrans with date=date %}Monthly Report - {{ date }}{% endblocktrans %}
                     {% endif %}
                     {% if employee %}
                         - {{ employee.full_name }}
                     {% endif %}
                 </h4>
-                <small class="text-white">Events between 06:00 and 22:00 only • Pairs with <30min gap are split</small>
+                <small class="text-white">{% trans "Events between 06:00 and 22:00 only • Pairs with <30min gap are split" %}</small>
             </div>
             <a href="{% url 'attendance:export_report' %}?{{ request.GET.urlencode }}" class="btn btn-light btn-sm">
-                <i class="bi bi-download"></i> Download CSV
+                <i class="bi bi-download"></i> {% trans "Download CSV" %}
             </a>
         </div>
     </div>
@@ -98,10 +99,10 @@
                 <div class="card mb-3">
                     <div class="card-header">
                         <strong>{{ data.name }}</strong>
-                        <span class="badge bg-primary ms-2">{{ data.total_pairs }} pair(s)</span>
-                        <span class="badge bg-success ms-2">{{ data.total_work_hours }} hours</span>
+                        <span class="badge bg-primary ms-2">{% blocktrans count counter=data.total_pairs %}{{ counter }} pair{% plural %}{{ counter }} pairs{% endblocktrans %}</span>
+                        <span class="badge bg-success ms-2">{% blocktrans with hours=data.total_work_hours %}{{ hours }} hours{% endblocktrans %}</span>
                         {% if data.unpaired_events > 0 %}
-                        <span class="badge bg-warning ms-2">{{ data.unpaired_events }} unpaired event(s)</span>
+                        <span class="badge bg-warning ms-2">{% blocktrans count counter=data.unpaired_events %}{{ counter }} unpaired event{% plural %}{{ counter }} unpaired events{% endblocktrans %}</span>
                         {% endif %}
                     </div>
                     <div class="card-body">
@@ -110,12 +111,12 @@
                             <table class="table table-sm table-hover">
                                 <thead>
                                     <tr class="table-light">
-                                        <th width="15%">Clock In</th>
-                                        <th width="15%">Clock Out</th>
-                                        <th width="15%">Duration</th>
-                                        <th width="20%">In - Verify</th>
-                                        <th width="20%">Out - Verify</th>
-                                        <th width="15%">Device</th>
+                                        <th width="15%">{% trans "Clock In" %}</th>
+                                        <th width="15%">{% trans "Clock Out" %}</th>
+                                        <th width="15%">{% trans "Duration" %}</th>
+                                        <th width="20%">{% trans "In - Verify" %}</th>
+                                        <th width="20%">{% trans "Out - Verify" %}</th>
+                                        <th width="15%">{% trans "Device" %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -134,14 +135,14 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-info">
-                                        <td colspan="2"><strong>Total</strong></td>
-                                        <td colspan="4"><strong>{{ data.total_work_hours }} hours ({{ data.total_work_minutes|floatformat:0 }} minutes)</strong></td>
+                                        <td colspan="2"><strong>{% trans "Total" %}</strong></td>
+                                        <td colspan="4"><strong>{% blocktrans with hours=data.total_work_hours minutes=data.total_work_minutes %}{{ hours }} hours ({{ minutes }} minutes){% endblocktrans %}</strong></td>
                                     </tr>
                                 </tfoot>
                             </table>
                         </div>
                         {% else %}
-                        <p class="text-muted mb-0">No valid pairs found (minimum 30-minute gap required)</p>
+                        <p class="text-muted mb-0">{% trans "No valid pairs found (minimum 30-minute gap required)" %}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -149,7 +150,7 @@
             </div>
             {% empty %}
             <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> No attendance data found for the selected period.
+                <i class="bi bi-info-circle"></i> {% trans "No attendance data found for the selected period." %}
             </div>
             {% endfor %}
 
@@ -159,10 +160,10 @@
             <div class="card mb-3">
                 <div class="card-header">
                     <strong>{{ data.name }}</strong>
-                    <span class="badge bg-primary ms-2">{{ data.total_pairs }} pair(s)</span>
-                    <span class="badge bg-success ms-2">{{ data.total_work_hours }} hours</span>
+                    <span class="badge bg-primary ms-2">{% blocktrans count counter=data.total_pairs %}{{ counter }} pair{% plural %}{{ counter }} pairs{% endblocktrans %}</span>
+                    <span class="badge bg-success ms-2">{% blocktrans with hours=data.total_work_hours %}{{ hours }} hours{% endblocktrans %}</span>
                     {% if data.unpaired_events > 0 %}
-                    <span class="badge bg-warning ms-2">{{ data.unpaired_events }} unpaired event(s)</span>
+                    <span class="badge bg-warning ms-2">{% blocktrans count counter=data.unpaired_events %}{{ counter }} unpaired event{% plural %}{{ counter }} unpaired events{% endblocktrans %}</span>
                     {% endif %}
                 </div>
                 <div class="card-body">
@@ -171,12 +172,12 @@
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr class="table-light">
-                                    <th width="15%">Clock In</th>
-                                    <th width="15%">Clock Out</th>
-                                    <th width="15%">Duration</th>
-                                    <th width="20%">In - Verify</th>
-                                    <th width="20%">Out - Verify</th>
-                                    <th width="15%">Device</th>
+                                    <th width="15%">{% trans "Clock In" %}</th>
+                                    <th width="15%">{% trans "Clock Out" %}</th>
+                                    <th width="15%">{% trans "Duration" %}</th>
+                                    <th width="20%">{% trans "In - Verify" %}</th>
+                                    <th width="20%">{% trans "Out - Verify" %}</th>
+                                    <th width="15%">{% trans "Device" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -195,20 +196,20 @@
                             </tbody>
                             <tfoot>
                                 <tr class="table-info">
-                                    <td colspan="2"><strong>Total</strong></td>
-                                    <td colspan="4"><strong>{{ data.total_work_hours }} hours ({{ data.total_work_minutes|floatformat:0 }} minutes)</strong></td>
+                                    <td colspan="2"><strong>{% trans "Total" %}</strong></td>
+                                    <td colspan="4"><strong>{% blocktrans with hours=data.total_work_hours minutes=data.total_work_minutes %}{{ hours }} hours ({{ minutes }} minutes){% endblocktrans %}</strong></td>
                                 </tr>
                             </tfoot>
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted mb-0">No valid pairs found (minimum 30-minute gap required)</p>
+                    <p class="text-muted mb-0">{% trans "No valid pairs found (minimum 30-minute gap required)" %}</p>
                     {% endif %}
                 </div>
             </div>
             {% empty %}
             <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> No attendance data found for the selected date.
+                <i class="bi bi-info-circle"></i> {% trans "No attendance data found for the selected date." %}
             </div>
             {% endfor %}
         {% endif %}
@@ -217,7 +218,7 @@
 {% else %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle"></i>
-    Select report options and click "Generate" to view attendance summary with paired clock-in/out events.
+    {% trans "Select report options and click \"Generate\" to view attendance summary with paired clock-in/out events." %}
 </div>
 {% endif %}
 

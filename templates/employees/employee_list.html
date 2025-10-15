@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Employees - ZKTeco K40 Management{% endblock %}
+{% block title %}{% trans "Employees" %} - {% trans "ZKTeco K40 Management" %}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-people"></i> Employees</h1>
+    <h1><i class="bi bi-people"></i> {% trans "Employees" %}</h1>
     <div>
         <a href="{% url 'employees:employee_add' %}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Add Employee
+            <i class="bi bi-plus-circle"></i> {% trans "Add Employee" %}
         </a>
     </div>
 </div>
@@ -27,10 +28,10 @@
             </div>
             <div class="col-md-3">
                 <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-search"></i> Search
+                    <i class="bi bi-search"></i> {% trans "Search" %}
                 </button>
                 <a href="{% url 'employees:employee_list' %}" class="btn btn-secondary">
-                    <i class="bi bi-x-circle"></i> Clear
+                    <i class="bi bi-x-circle"></i> {% trans "Clear" %}
                 </a>
             </div>
         </form>
@@ -40,14 +41,14 @@
 <!-- Sync Actions -->
 <div class="card mb-3 border-primary">
     <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> Employee Synchronization</h5>
+        <h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> {% trans "Employee Synchronization" %}</h5>
     </div>
     <div class="card-body">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-md-4">
-                <label class="form-label"><strong>Select Device:</strong></label>
+                <label class="form-label"><strong>{% trans "Select Device:" %}</strong></label>
                 <select name="device" class="form-select" required>
-                    <option value="">Choose device...</option>
+                    <option value="">{% trans "Choose device..." %}</option>
                     {% for device in devices %}
                         <option value="{{ device.pk }}">{{ device.name }} ({{ device.ip_address }})</option>
                     {% endfor %}
@@ -55,61 +56,142 @@
             </div>
             <div class="col-md-8">
                 <button type="submit" formaction="{% url 'employees:sync_to_device' %}" class="btn btn-success btn-lg me-2">
-                    <i class="bi bi-cloud-upload"></i> Upload Employees TO Device
+                    <i class="bi bi-cloud-upload"></i> {% trans "Upload Employees TO Device" %}
                 </button>
                 <button type="submit" formaction="{% url 'employees:sync_from_device' %}" class="btn btn-info btn-lg">
-                    <i class="bi bi-cloud-download"></i> Download Users FROM Device
+                    <i class="bi bi-cloud-download"></i> {% trans "Download Users FROM Device" %}
                 </button>
             </div>
         </form>
         <div class="mt-3">
             <small class="text-muted">
                 <i class="bi bi-info-circle"></i>
-                <strong>Upload TO Device:</strong> Send all active employees from database to the device.
-                <strong>Download FROM Device:</strong> Import all users from the device into the database.
+                <strong>{% trans "Upload TO Device:" %}</strong> {% trans "Send all active employees from database to the device." %}
+                <strong>{% trans "Download FROM Device:" %}</strong> {% trans "Import all users from the device into the database." %}
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- CSV Import/Export Actions -->
+<div class="card mb-3 border-info">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="bi bi-file-earmark-spreadsheet"></i> {% trans "CSV Import/Export" %}</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <h6><i class="bi bi-download"></i> {% trans "Export Employees to CSV" %}</h6>
+                <p class="text-muted small mb-2">{% trans "Download current filtered employees as CSV file (preserves search/filter settings)" %}</p>
+                <a href="{% url 'employees:export_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-success">
+                    <i class="bi bi-download"></i> {% trans "Export to CSV" %}
+                </a>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="bi bi-upload"></i> {% trans "Import Employees from CSV" %}</h6>
+                <p class="text-muted small mb-2">{% trans "Upload CSV file to create or update employees (matches by Employee ID or User ID)" %}</p>
+                <form method="post" action="{% url 'employees:import_csv' %}" enctype="multipart/form-data" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> {% trans "Import" %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="mt-3">
+            <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                <strong>{% trans "CSV Format:" %}</strong> {% trans "Employee ID, First Name, Last Name, Department, User ID, Card Number, Password, Privilege, Is Active, Device" %}
             </small>
         </div>
     </div>
 </div>
 
 {% if employees %}
+<!-- Bulk Delete Actions -->
+<div class="card mb-3 border-danger">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0"><i class="bi bi-trash"></i> {% trans "Bulk Delete Employees" %}</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" action="{% url 'employees:bulk_delete_from_device' %}" id="bulkDeleteForm" onsubmit="return confirmBulkDelete()">
+            {% csrf_token %}
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label"><strong>{% trans "Delete from Device:" %}</strong></label>
+                    <select name="bulk_device" class="form-select" id="bulkDeleteDevice">
+                        <option value="">{% trans "Database only" %}</option>
+                        {% for device in devices %}
+                            <option value="{{ device.pk }}">{{ device.name }} ({{ device.ip_address }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-9">
+                    <button type="submit" class="btn btn-danger btn-lg" id="bulkDeleteButton" disabled onclick="setBulkDeleteMode('device')">
+                        <i class="bi bi-trash"></i> {% trans "Delete Selected (DB + Device)" %}
+                    </button>
+                    <button type="submit" class="btn btn-warning btn-lg" id="bulkDeleteDbOnlyButton" disabled onclick="setBulkDeleteMode('db')">
+                        <i class="bi bi-database-dash"></i> {% trans "Delete from DB Only" %}
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-lg" onclick="toggleSelectAll()">
+                        <i class="bi bi-check-square"></i> {% trans "Select All" %}
+                    </button>
+                    <span id="selectedCount" class="badge bg-info ms-2">0 {% trans "selected" %}</span>
+                </div>
+            </div>
+            <input type="hidden" name="delete_from_device" id="deleteFromDevice" value="false">
+        </form>
+        <div class="mt-2">
+            <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                {% trans "Select employees below, then choose: (1) Delete from DB + Device (requires device selection), or (2) Delete from Database Only." %}
+            </small>
+        </div>
+    </div>
+</div>
+
 <div class="table-responsive">
     <table class="table table-hover table-striped">
         <thead class="table-dark">
             <tr>
-                <th>Employee ID</th>
-                <th>Name</th>
-                <th>Department</th>
-                <th>User ID</th>
-                <th>Status</th>
-                <th>Synced</th>
-                <th>Device</th>
-                <th>Sync Actions</th>
-                <th>Actions</th>
+                <th><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()"></th>
+                <th>{% trans "Employee ID" %}</th>
+                <th>{% trans "Name" %}</th>
+                <th>{% trans "Department" %}</th>
+                <th>{% trans "User ID" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Synced" %}</th>
+                <th>{% trans "Device" %}</th>
+                <th>{% trans "Sync Actions" %}</th>
+                <th>{% trans "Actions" %}</th>
             </tr>
         </thead>
         <tbody>
             {% for employee in employees %}
             <tr>
+                <td>
+                    <input type="checkbox" class="employee-checkbox" name="employee_ids" value="{{ employee.pk }}" form="bulkDeleteForm" onchange="updateSelectedCount()">
+                </td>
                 <td><strong>{{ employee.employee_id }}</strong></td>
                 <td>{{ employee.full_name }}</td>
                 <td>{{ employee.department|default:"-" }}</td>
                 <td>{{ employee.user_id }}</td>
                 <td>
                     {% if employee.is_active %}
-                        <span class="badge bg-success">Active</span>
+                        <span class="badge bg-success">{% trans "Active" %}</span>
                     {% else %}
-                        <span class="badge bg-secondary">Inactive</span>
+                        <span class="badge bg-secondary">{% trans "Inactive" %}</span>
                     {% endif %}
                 </td>
                 <td>
                     {% if employee.synced_to_device %}
                         <span class="badge bg-success">
-                            <i class="bi bi-check-circle"></i> Synced
+                            <i class="bi bi-check-circle"></i> {% trans "Synced" %}
                         </span>
                     {% else %}
                         <span class="badge bg-warning">
-                            <i class="bi bi-exclamation-circle"></i> Not Synced
+                            <i class="bi bi-exclamation-circle"></i> {% trans "Not Synced" %}
                         </span>
                     {% endif %}
                 </td>
@@ -123,27 +205,27 @@
                 <td>
                     <div class="btn-group-vertical btn-group-sm" role="group">
                         <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-success btn-sm" onclick="syncEmployeeToDevice({{ employee.pk }})" title="Upload employee info to device">
-                                <i class="bi bi-cloud-upload"></i> Info
+                            <button type="button" class="btn btn-success btn-sm" onclick="syncEmployeeToDevice({{ employee.pk }})" title="{% trans 'Upload employee info to device' %}">
+                                <i class="bi bi-cloud-upload"></i> {% trans "Info" %}
                             </button>
-                            <button type="button" class="btn btn-outline-success btn-sm" onclick="syncFingerprintsToDevice({{ employee.pk }})" title="Upload fingerprints to device">
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="syncFingerprintsToDevice({{ employee.pk }})" title="{% trans 'Upload fingerprints to device' %}">
                                 <i class="bi bi-fingerprint"></i>
                             </button>
                         </div>
-                        <button type="button" class="btn btn-info btn-sm" onclick="syncEmployeeFromDevice({{ employee.pk }})" title="Download employee data and fingerprints from device">
-                            <i class="bi bi-cloud-download"></i> Download
+                        <button type="button" class="btn btn-info btn-sm" onclick="syncEmployeeFromDevice({{ employee.pk }})" title="{% trans 'Download employee data and fingerprints from device' %}">
+                            <i class="bi bi-cloud-download"></i> {% trans "Download" %}
                         </button>
                     </div>
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm" role="group">
-                        <a href="{% url 'employees:manage_fingerprints' employee.pk %}" class="btn btn-primary" title="Manage Fingerprints">
+                        <a href="{% url 'employees:manage_fingerprints' employee.pk %}" class="btn btn-primary" title="{% trans 'Manage Fingerprints' %}">
                             <i class="bi bi-fingerprint"></i>
                         </a>
-                        <a href="{% url 'employees:employee_edit' employee.pk %}" class="btn btn-warning" title="Edit">
+                        <a href="{% url 'employees:employee_edit' employee.pk %}" class="btn btn-warning" title="{% trans 'Edit' %}">
                             <i class="bi bi-pencil"></i>
                         </a>
-                        <a href="{% url 'employees:employee_delete' employee.pk %}" class="btn btn-danger" title="Delete">
+                        <a href="{% url 'employees:employee_delete' employee.pk %}" class="btn btn-danger" title="{% trans 'Delete' %}">
                             <i class="bi bi-trash"></i>
                         </a>
                     </div>
@@ -160,23 +242,23 @@
     <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
         <li class="page-item">
-            <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">First</a>
+            <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{% trans "First" %}</a>
         </li>
         <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{% trans "Previous" %}</a>
         </li>
         {% endif %}
 
         <li class="page-item active">
-            <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            <span class="page-link">{% blocktrans with number=page_obj.number total=page_obj.paginator.num_pages %}Page {{ number }} of {{ total }}{% endblocktrans %}</span>
         </li>
 
         {% if page_obj.has_next %}
         <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{% trans "Next" %}</a>
         </li>
         <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Last</a>
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{% trans "Last" %}</a>
         </li>
         {% endif %}
     </ul>
@@ -186,7 +268,7 @@
 {% else %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle"></i>
-    No employees found. <a href="{% url 'employees:employee_add' %}">Add your first employee</a> to get started.
+    {% trans "No employees found." %} <a href="{% url 'employees:employee_add' %}">{% trans "Add your first employee" %}</a> {% trans "to get started." %}
 </div>
 {% endif %}
 {% endblock %}
@@ -196,7 +278,7 @@
 function getDeviceSelection() {
     const deviceSelect = document.querySelector('select[name="device"]');
     if (!deviceSelect || !deviceSelect.value) {
-        alert('Please select a device from the dropdown at the top first');
+        alert('{% trans "Please select a device from the dropdown at the top first" %}');
         return null;
     }
     return deviceSelect.value;
@@ -206,7 +288,7 @@ function syncEmployeeToDevice(employeeId) {
     const deviceId = getDeviceSelection();
     if (!deviceId) return;
 
-    if (confirm('Upload employee information to device?')) {
+    if (confirm('{% trans "Upload employee information to device?" %}')) {
         window.location.href = `/employees/${employeeId}/sync-to-device/?device=${deviceId}`;
     }
 }
@@ -215,7 +297,7 @@ function syncFingerprintsToDevice(employeeId) {
     const deviceId = getDeviceSelection();
     if (!deviceId) return;
 
-    if (confirm('Upload fingerprint templates to device?')) {
+    if (confirm('{% trans "Upload fingerprint templates to device?" %}')) {
         window.location.href = `/employees/${employeeId}/fingerprints/upload/?device=${deviceId}&redirect=list`;
     }
 }
@@ -224,8 +306,54 @@ function syncEmployeeFromDevice(employeeId) {
     const deviceId = getDeviceSelection();
     if (!deviceId) return;
 
-    if (confirm('Download employee data and fingerprints from device?')) {
+    if (confirm('{% trans "Download employee data and fingerprints from device?" %}')) {
         window.location.href = `/employees/${employeeId}/sync-from-device/?device=${deviceId}`;
+    }
+}
+
+// Bulk delete functions
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    checkboxes.forEach(cb => cb.checked = !selectAllCheckbox.checked);
+    selectAllCheckbox.checked = !selectAllCheckbox.checked;
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
+    const count = checkboxes.length;
+    document.getElementById('selectedCount').textContent = count + ' {% trans "selected" %}';
+    document.getElementById('bulkDeleteButton').disabled = count === 0;
+    document.getElementById('bulkDeleteDbOnlyButton').disabled = count === 0;
+}
+
+function setBulkDeleteMode(mode) {
+    const deleteFromDeviceInput = document.getElementById('deleteFromDevice');
+    deleteFromDeviceInput.value = (mode === 'device') ? 'true' : 'false';
+}
+
+function confirmBulkDelete() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
+    const count = checkboxes.length;
+    const device = document.getElementById('bulkDeleteDevice');
+    const deleteFromDevice = document.getElementById('deleteFromDevice').value === 'true';
+
+    if (count === 0) {
+        alert('{% trans "Please select at least one employee to delete" %}');
+        return false;
+    }
+
+    if (deleteFromDevice && !device.value) {
+        alert('{% trans "Please select a device to delete from, or use DB Only button" %}');
+        return false;
+    }
+
+    if (deleteFromDevice) {
+        const deviceName = device.options[device.selectedIndex].text;
+        return confirm(`{% trans "Are you sure you want to delete" %} ${count} {% trans "employees from the device" %} (${deviceName}) {% trans "and database? This action cannot be undone." %}`);
+    } else {
+        return confirm(`{% trans "Are you sure you want to delete" %} ${count} {% trans "employees from the database only? They will remain on any devices. This action cannot be undone." %}`);
     }
 }
 </script>

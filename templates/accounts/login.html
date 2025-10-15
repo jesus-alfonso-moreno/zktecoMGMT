@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load crispy_forms_tags %}
 
-{% block title %}Login - ZKTeco Management{% endblock %}
+{% block title %}{% trans "Login" %} - {% trans "ZKTeco Management" %}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -9,7 +10,7 @@
         <div class="card shadow-sm">
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">
-                    <i class="bi bi-person-circle"></i> Login
+                    <i class="bi bi-person-circle"></i> {% trans "Login" %}
                 </h2>
 
                 <form method="post">
@@ -18,7 +19,7 @@
 
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                            <i class="bi bi-box-arrow-in-right"></i> {% trans "Sign In" %}
                         </button>
                     </div>
                 </form>
@@ -28,7 +29,7 @@
         <div class="text-center mt-3 text-muted">
             <small>
                 <i class="bi bi-info-circle"></i>
-                Access is restricted to authorized users only.
+                {% trans "Access is restricted to authorized users only." %}
             </small>
         </div>
     </div>
