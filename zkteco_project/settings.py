@@ -5,13 +5,13 @@ Django settings for zkteco_project project.
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import dj_database_url
 
-# Load environment variables
-load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+# Load environment variablesy
+load_dotenv(BASE_DIR / '.env')
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
 
@@ -75,11 +75,10 @@ WSGI_APPLICATION = 'zkteco_project.wsgi.application'
 
 # Database
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config()
 }
+
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
