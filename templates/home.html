@@ -79,12 +79,14 @@
                     <li>{% blocktrans %}<strong>Download Attendance:</strong> Fetch attendance events from the device.{% endblocktrans %}</li>
                     <li>{% blocktrans %}<strong>Generate Reports:</strong> View daily, weekly, or monthly attendance reports.{% endblocktrans %}</li>
                 </ol>
-
+                 {% if ZK_TEST_MODE %}
                 <div class="alert alert-warning mt-3">
                     <i class="bi bi-exclamation-triangle"></i>
+                     
                     {% blocktrans %}<strong>Development Mode:</strong> The system is currently running in MOCK mode with simulated data.
                     To connect to a real device, set <code>ZK_TEST_MODE=False</code> in your <code>.env</code> file.{% endblocktrans %}
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
