@@ -209,10 +209,15 @@ USER_EXISTS=$(su - postgres -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname
 if [ "$USER_EXISTS" -gt 0 ]; then
     log "${GREEN}✓ User '$DB_USER' exists - updating credentials${NC}"
 
-    # Update password and ensure privileges
-    su - postgres -c "psql" <<EOF
+    # Update password and ensure all privileges including schema permissions
+    su - postgres -c "psql -d \"$DB_NAME\"" <<EOF
 ALTER USER "$DB_USER" WITH PASSWORD '$DB_PASSWORD';
 GRANT ALL PRIVILEGES ON DATABASE "$DB_NAME" TO "$DB_USER";
+GRANT ALL ON SCHEMA public TO "$DB_USER";
+GRANT CREATE ON SCHEMA public TO "$DB_USER";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "$DB_USER";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "$DB_USER";
+ALTER DATABASE "$DB_NAME" OWNER TO "$DB_USER";
 EOF
 
     if [ $? -eq 0 ]; then
@@ -230,9 +235,26 @@ GRANT ALL PRIVILEGES ON DATABASE "$DB_NAME" TO "$DB_USER";
 EOF
 
     if [ $? -eq 0 ]; then
-        log "${GREEN}✓ User '$DB_USER' created with privileges${NC}"
+        log "${GREEN}✓ User '$DB_USER' created${NC}"
     else
         log "${RED}✗ Failed to create user${NC}"
+        exit 1
+    fi
+
+    # Grant schema-level permissions
+    log "${YELLOW}Granting schema permissions to '$DB_USER'...${NC}"
+    su - postgres -c "psql -d \"$DB_NAME\"" <<EOF
+GRANT ALL ON SCHEMA public TO "$DB_USER";
+GRANT CREATE ON SCHEMA public TO "$DB_USER";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "$DB_USER";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "$DB_USER";
+ALTER DATABASE "$DB_NAME" OWNER TO "$DB_USER";
+EOF
+
+    if [ $? -eq 0 ]; then
+        log "${GREEN}✓ Schema permissions granted to '$DB_USER'${NC}"
+    else
+        log "${RED}✗ Failed to grant schema permissions${NC}"
         exit 1
     fi
 fi

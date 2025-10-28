@@ -290,31 +290,32 @@ log ""
 log "${YELLOW}Generating .env file...${NC}"
 
 # Delete existing .env file if it exists
-if [ -f ".env" ]; then
-    rm .env
+if [ -f "$PROJECT_DIR/.env" ]; then
+    rm "$PROJECT_DIR/.env"
     log "${GREEN}✓ Deleted existing .env file${NC}"
 fi
 
-# Generate a strong secret key (Django is now installed)
-SECRET_KEY=$(python3 -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')
+# Generate a strong secret key using virtual environment Python
+SECRET_KEY=$("$VENV_PATH/bin/python" -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')
 
 # Build DATABASE_URL
 DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@localhost/$DB_NAME"
 
 # Create new .env file with quoted SECRET_KEY to handle special characters
-cat > .env << EOF
+cat > "$PROJECT_DIR/.env" << EOF
 DEBUG=False
 SECRET_KEY='$SECRET_KEY'
 ALLOWED_HOSTS=$ALLOWED_HOSTS
 ZK_TEST_MODE=$ZK_TEST_MODE
 DATABASE_URL=$DATABASE_URL
-SERVER_PORT=$SERVER_PORT
+SERVER_PORT=$GUNICORN_PORT
 EOF
 
-log "${GREEN}✓ Created new .env file${NC}"
+log "${GREEN}✓ Created new .env file at $PROJECT_DIR/.env${NC}"
 log "${GREEN}  Generated SECRET_KEY: ${SECRET_KEY:0:20}...${NC}"
 log "${GREEN}  DATABASE_URL: postgresql://$DB_USER:***@localhost/$DB_NAME${NC}"
-log "${GREEN}  SERVER_PORT: $SERVER_PORT${NC}"
+log "${GREEN}  ALLOWED_HOSTS: $ALLOWED_HOSTS${NC}"
+log "${GREEN}  SERVER_PORT: $GUNICORN_PORT${NC}"
 
 # =============================================================================
 # Call OS-Specific Subscript
