@@ -188,7 +188,7 @@ else
 fi
 
 # Check if user exists
-USER_EXISTS=$(su - postgres -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'\"" | grep -c 1)
+USER_EXISTS=$(su - postgres -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'\"" 2>/dev/null | grep -c 1 || echo "0")
 
 if [ "$USER_EXISTS" -gt 0 ]; then
     log "${GREEN}✓ User '$DB_USER' exists - updating credentials${NC}"
