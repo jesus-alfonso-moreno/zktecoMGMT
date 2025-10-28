@@ -20,10 +20,10 @@
 <div class="card mb-3">
     <div class="card-body">
         <h5 class="card-title">{% trans "Download Attendance" %}</h5>
-        <form method="get" action="{% url 'attendance:download_attendance' %}" class="row g-3 align-items-end">
+        <form class="row g-3 align-items-end" id="downloadAttendanceForm">
             <div class="col-md-8">
                 <label class="form-label">{% trans "Select Device:" %}</label>
-                <select name="device" class="form-select" required>
+                <select name="device" id="attendanceDeviceSelect" class="form-select" required>
                     <option value="">{% trans "Choose device..." %}</option>
                     {% for device in devices %}
                         <option value="{{ device.pk }}">{{ device.name }} ({{ device.ip_address }})</option>
@@ -31,7 +31,7 @@
                 </select>
             </div>
             <div class="col-md-4">
-                <button type="submit" class="btn btn-primary">
+                <button type="button" onclick="downloadAttendance()" class="btn btn-primary">
                     <i class="bi bi-cloud-download"></i> {% trans "Download Events" %}
                 </button>
             </div>
@@ -182,4 +182,20 @@
     {% trans "No attendance events found. Download attendance from a device to see events here." %}
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function downloadAttendance() {
+    const deviceSelect = document.getElementById('attendanceDeviceSelect');
+    const deviceId = deviceSelect.value;
+
+    if (!deviceId) {
+        alert('{% trans "Please select a device" %}');
+        return;
+    }
+
+    taskTracker.startTask(`{% url 'tasks:start_download_attendance' device_id=0 %}`.replace('/0/', `/${deviceId}/`), '{% trans "Download Attendance" %}');
+}
+</script>
 {% endblock %}

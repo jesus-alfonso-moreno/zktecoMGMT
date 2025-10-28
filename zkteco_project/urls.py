@@ -18,5 +18,6 @@ urlpatterns += i18n_patterns(
     path('device/', include('device.urls')),
     path('employees/', include('employees.urls')),
     path('attendance/', include('attendance.urls')),
+    path('tasks/', include('tasks.urls')),
     prefix_default_language=True,
 )

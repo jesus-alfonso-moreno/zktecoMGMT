@@ -1,0 +1,57 @@
+<!-- Task Progress Modal -->
+<div class="modal fade" id="taskProgressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskProgressTitle">Processing...</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="taskProgressClose" style="display:none;"></button>
+            </div>
+            <div class="modal-body">
+                <div id="taskProgressMessage" class="mb-3 text-center">
+                    <i class="bi bi-hourglass-split me-2"></i>
+                    <span>Initializing...</span>
+                </div>
+
+                <div class="progress" style="height: 30px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                         role="progressbar"
+                         id="taskProgressBar"
+                         style="width: 0%"
+                         aria-valuenow="0"
+                         aria-valuemin="0"
+                         aria-valuemax="100">
+                        <span id="taskProgressPercent" class="fw-bold">0%</span>
+                    </div>
+                </div>
+
+                <div id="taskProgressDetails" class="mt-3 small text-muted text-center"></div>
+
+                <div id="taskProgressResult" class="mt-3" style="display:none;">
+                    <div id="taskProgressSuccess" class="alert alert-success" style="display:none;">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <span id="taskProgressSuccessMessage"></span>
+                    </div>
+                    <div id="taskProgressError" class="alert alert-danger" style="display:none;">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <span id="taskProgressErrorMessage"></span>
+                    </div>
+                    <div id="taskProgressErrors" class="mt-2" style="display:none;">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <strong><i class="bi bi-exclamation-circle me-2"></i>Errors Encountered</strong>
+                            </div>
+                            <div class="card-body">
+                                <ul id="taskProgressErrorList" class="mb-0 small"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="taskProgressDone" style="display:none;" data-bs-dismiss="modal">
+                    <i class="bi bi-check2"></i> Done
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

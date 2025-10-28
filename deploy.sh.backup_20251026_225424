@@ -1,6 +1,6 @@
 #!/bin/bash
 # deploy.sh - Universal deployment orchestrator for ZKTeco Management System
-# This script auto-detects the project directory and calls OS-specific subscripts
+# This script contains only OS-agnostic operations and calls OS-specific subscripts
 
 # Exit immediately if a command exits with a non-zero status
 set -e
@@ -15,63 +15,9 @@ export BLUE='\033[0;34m'
 export NC='\033[0m' # No Color
 
 # =============================================================================
-# Auto-Detect Project Directory
-# =============================================================================
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$SCRIPT_DIR"
-
-# Verify this is a Django project directory
-echo -e "${YELLOW}Verifying project directory: $PROJECT_DIR${NC}"
-
-# Check for required files
-REQUIRED_FILES=("manage.py" "requirements.txt")
-MISSING_FILES=()
-
-for file in "${REQUIRED_FILES[@]}"; do
-    if [ ! -f "$PROJECT_DIR/$file" ]; then
-        MISSING_FILES+=("$file")
-    fi
-done
-
-if [ ${#MISSING_FILES[@]} -gt 0 ]; then
-    echo -e "${RED}========================================${NC}"
-    echo -e "${RED}ERROR: Invalid Django project directory${NC}"
-    echo -e "${RED}========================================${NC}"
-    echo ""
-    echo -e "${YELLOW}This script must be run from the root directory of the ZKTeco Management System.${NC}"
-    echo ""
-    echo -e "${YELLOW}Current directory: $PROJECT_DIR${NC}"
-    echo ""
-    echo -e "${RED}Missing required files:${NC}"
-    for file in "${MISSING_FILES[@]}"; do
-        echo -e "  ${RED}✗ $file${NC}"
-    done
-    echo ""
-    echo -e "${YELLOW}Please navigate to the project directory and run this script from there.${NC}"
-    echo -e "${YELLOW}Example: cd /opt/CCP/zktecoMGMT && sudo ./deploy.sh${NC}"
-    exit 1
-fi
-
-# Check for settings.py in zkteco_project
-if [ ! -f "$PROJECT_DIR/zkteco_project/settings.py" ]; then
-    echo -e "${RED}========================================${NC}"
-    echo -e "${RED}WARNING: Django settings.py not found${NC}"
-    echo -e "${RED}========================================${NC}"
-    echo ""
-    echo -e "${YELLOW}Expected location: $PROJECT_DIR/zkteco_project/settings.py${NC}"
-    echo ""
-    read -p "$(echo -e ${YELLOW}Do you want to continue anyway?${NC}) (y/n) [n]: " CONTINUE
-    if [[ ! "$CONTINUE" =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
-fi
-
-echo -e "${GREEN}✓ Project directory validated: $PROJECT_DIR${NC}"
-echo ""
-
-# =============================================================================
 # Logging Setup
 # =============================================================================
+PROJECT_DIR=$(pwd)
 LOG_DIR="$PROJECT_DIR/logs"
 LOG_FILE="$LOG_DIR/deployment_$(date +%Y%m%d_%H%M%S).log"
 
@@ -287,10 +233,10 @@ SECRET_KEY=$(python3 -c 'from django.core.management.utils import get_random_sec
 # Build DATABASE_URL
 DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@localhost/$DB_NAME"
 
-# Create new .env file with quoted SECRET_KEY to handle special characters
+# Create new .env file
 cat > .env << EOF
 DEBUG=False
-SECRET_KEY='$SECRET_KEY'
+SECRET_KEY=$SECRET_KEY
 ALLOWED_HOSTS=$ALLOWED_HOSTS
 ZK_TEST_MODE=$ZK_TEST_MODE
 DATABASE_URL=$DATABASE_URL
@@ -414,27 +360,6 @@ else
 fi
 
 # =============================================================================
-# Create Media Directory
-# =============================================================================
-log ""
-log "${YELLOW}Creating media directory...${NC}"
-
-if [ ! -d "$PROJECT_DIR/media" ]; then
-    mkdir -p "$PROJECT_DIR/media"
-    log "${GREEN}✓ Created media directory${NC}"
-else
-    log "${GREEN}✓ Media directory already exists${NC}"
-fi
-
-# Set ownership and permissions
-if [ -n "$SUDO_USER" ]; then
-    chown -R $SUDO_USER:$SUDO_USER "$PROJECT_DIR/media"
-    log "${GREEN}✓ Set media directory ownership to $SUDO_USER${NC}"
-fi
-chmod 755 "$PROJECT_DIR/media"
-log "${GREEN}✓ Set media directory permissions${NC}"
-
-# =============================================================================
 # Collect Static Files
 # =============================================================================
 log ""
@@ -534,33 +459,14 @@ log "${YELLOW}Systemd Services Created:${NC}"
 log "  Gunicorn:  /etc/systemd/system/gunicorn.service"
 log "  Django-Q2: /etc/systemd/system/django-q.service"
 log ""
-log "${YELLOW}Systemd Service Management:${NC}"
-log "  Check all services:  ${BLUE}sudo systemctl status nginx gunicorn django-q postgresql${NC}"
+log "${YELLOW}Useful commands:${NC}"
+log "  Activate venv:       ${BLUE}source $VENV_PATH/bin/activate${NC}"
 log "  Check gunicorn:      ${BLUE}sudo systemctl status gunicorn${NC}"
 log "  Check django-q:      ${BLUE}sudo systemctl status django-q${NC}"
-log "  Check nginx:         ${BLUE}sudo systemctl status nginx${NC}"
 log "  View gunicorn logs:  ${BLUE}sudo journalctl -u gunicorn -f${NC}"
 log "  View django-q logs:  ${BLUE}sudo journalctl -u django-q -f${NC}"
-log "  View nginx logs:     ${BLUE}sudo tail -f /var/log/nginx/error.log${NC}"
 log "  Restart gunicorn:    ${BLUE}sudo systemctl restart gunicorn${NC}"
 log "  Restart django-q:    ${BLUE}sudo systemctl restart django-q${NC}"
-log "  Restart nginx:       ${BLUE}sudo systemctl restart nginx${NC}"
-log ""
-log "${YELLOW}Application Access:${NC}"
-log "  Main application:    ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1)/${NC}"
-log "  Admin panel:         ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1)/admin${NC}"
-log "  Static files:        ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1)/static/${NC}"
-log ""
-log "${YELLOW}Development:${NC}"
-log "  Activate venv:       ${BLUE}source $VENV_PATH/bin/activate${NC}"
-log "  Django shell:        ${BLUE}python manage.py shell${NC}"
-log "  Make migrations:     ${BLUE}python manage.py makemigrations${NC}"
-log "  Apply migrations:    ${BLUE}python manage.py migrate${NC}"
-log "  Collect static:      ${BLUE}python manage.py collectstatic${NC}"
-log ""
-log "${YELLOW}Important Notes:${NC}"
-log "  - Nginx runs on port 80 (HTTP) and proxies to Gunicorn on localhost:$SERVER_PORT"
-log "  - Gunicorn serves Django on localhost:$SERVER_PORT (not publicly exposed)"
-log "  - Django-Q2 processes background tasks (employee sync, attendance download)"
-log "  - All services run as user: $([ -n "$SUDO_USER" ] && echo "$SUDO_USER" || echo "$(whoami)")"
+log "  Access application:  ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1):$SERVER_PORT${NC}"
+log "  Access admin:        ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1):$SERVER_PORT/admin${NC}"
 log ""

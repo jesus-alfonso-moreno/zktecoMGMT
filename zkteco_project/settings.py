@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'device.apps.DeviceConfig',
     'employees.apps.EmployeesConfig',
     'attendance.apps.AttendanceConfig',
+    'tasks',
 ]
 
 MIDDLEWARE = [

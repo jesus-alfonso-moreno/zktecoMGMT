@@ -55,10 +55,10 @@
                 </select>
             </div>
             <div class="col-md-8">
-                <button type="submit" formaction="{% url 'employees:sync_to_device' %}" class="btn btn-success btn-lg me-2">
+                <button type="button" onclick="bulkSyncToDevice()" class="btn btn-success btn-lg me-2">
                     <i class="bi bi-cloud-upload"></i> {% trans "Upload Employees TO Device" %}
                 </button>
-                <button type="submit" formaction="{% url 'employees:sync_from_device' %}" class="btn btn-info btn-lg">
+                <button type="button" onclick="bulkSyncFromDevice()" class="btn btn-info btn-lg">
                     <i class="bi bi-cloud-download"></i> {% trans "Download Users FROM Device" %}
                 </button>
             </div>
@@ -282,6 +282,21 @@ function getDeviceSelection() {
         return null;
     }
     return deviceSelect.value;
+}
+
+// Bulk sync functions using async tasks
+function bulkSyncToDevice() {
+    const deviceId = getDeviceSelection();
+    if (!deviceId) return;
+
+    taskTracker.startTask(`{% url 'tasks:start_sync_to_device' device_id=0 %}`.replace('/0/', `/${deviceId}/`), '{% trans "Sync To Device" %}');
+}
+
+function bulkSyncFromDevice() {
+    const deviceId = getDeviceSelection();
+    if (!deviceId) return;
+
+    taskTracker.startTask(`{% url 'tasks:start_sync_from_device' device_id=0 %}`.replace('/0/', `/${deviceId}/`), '{% trans "Sync From Device" %}');
 }
 
 function syncEmployeeToDevice(employeeId) {
