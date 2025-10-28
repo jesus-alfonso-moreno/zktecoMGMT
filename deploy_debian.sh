@@ -502,6 +502,26 @@ fi
 log ""
 log "${YELLOW}Starting and enabling all services...${NC}"
 
+# Check for port conflicts before starting Nginx
+log "${YELLOW}Checking for port conflicts on port $NGINX_PORT...${NC}"
+PORT_IN_USE=$(sudo lsof -i :$NGINX_PORT -sTCP:LISTEN -t 2>/dev/null || echo "")
+
+if [ -n "$PORT_IN_USE" ]; then
+    CONFLICTING_PROCESS=$(sudo lsof -i :$NGINX_PORT -sTCP:LISTEN | tail -n +2)
+    log "${RED}✗ Port $NGINX_PORT is already in use by another process:${NC}"
+    echo "$CONFLICTING_PROCESS" | tee -a "$LOG_FILE"
+    log ""
+    log "${YELLOW}Resolution options:${NC}"
+    log "${YELLOW}  1. Stop the conflicting service (if safe to do so)${NC}"
+    log "${YELLOW}  2. Re-run deploy.sh and choose a different port (e.g., 8080)${NC}"
+    log "${YELLOW}  3. Configure Traefik/reverse proxy to forward to this application${NC}"
+    log ""
+    log "${RED}Deployment cannot continue with port conflict.${NC}"
+    exit 1
+else
+    log "${GREEN}✓ Port $NGINX_PORT is available${NC}"
+fi
+
 # Enable and start Nginx
 sudo systemctl enable nginx
 sudo systemctl restart nginx
