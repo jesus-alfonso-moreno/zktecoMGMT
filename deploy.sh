@@ -392,7 +392,7 @@ fi
 # =============================================================================
 log ""
 log "${YELLOW}Creating Django migrations...${NC}"
-python3 manage.py makemigrations 2>&1 | tee -a "$LOG_FILE"
+"$VENV_PATH/bin/python" manage.py makemigrations 2>&1 | tee -a "$LOG_FILE"
 if [ $? -eq 0 ]; then
     log "${GREEN}✓ Django migrations created${NC}"
 else
@@ -404,7 +404,7 @@ fi
 # =============================================================================
 log ""
 log "${YELLOW}Applying Django migrations...${NC}"
-python3 manage.py migrate 2>&1 | tee -a "$LOG_FILE"
+"$VENV_PATH/bin/python" manage.py migrate 2>&1 | tee -a "$LOG_FILE"
 if [ $? -eq 0 ]; then
     log "${GREEN}✓ Django migrations applied${NC}"
 else
@@ -419,7 +419,7 @@ fi
 log ""
 log "${YELLOW}Creating Django superuser...${NC}"
 log "${BLUE}Please enter your admin credentials:${NC}"
-python3 manage.py createsuperuser
+"$VENV_PATH/bin/python" manage.py createsuperuser
 if [ $? -eq 0 ]; then
     log "${GREEN}✓ Superuser created${NC}"
 else
@@ -462,7 +462,7 @@ if [ -d "$PROJECT_DIR/staticfiles" ]; then
     fi
 fi
 
-python3 manage.py collectstatic --noinput 2>&1 | tee -a "$LOG_FILE"
+"$VENV_PATH/bin/python" manage.py collectstatic --noinput 2>&1 | tee -a "$LOG_FILE"
 if [ $? -eq 0 ]; then
     log "${GREEN}✓ Static files collected${NC}"
 else
