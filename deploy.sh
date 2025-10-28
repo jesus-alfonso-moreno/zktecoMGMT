@@ -223,11 +223,25 @@ read -p "$(echo -e "${YELLOW}Enter allowed hosts (comma-separated)${NC}") [local
 ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
 log "${GREEN}✓ Allowed hosts: $ALLOWED_HOSTS${NC}"
 
-# Server port
-read -p "$(echo -e "${YELLOW}Enter server port${NC}") [8000]: " SERVER_PORT
-SERVER_PORT=${SERVER_PORT:-8000}
-export SERVER_PORT
-log "${GREEN}✓ Server port: $SERVER_PORT${NC}"
+# Nginx public port
+log ""
+log "${YELLOW}Port Configuration:${NC}"
+log "${YELLOW}  - Nginx (public access): Port for users to access the application${NC}"
+log "${YELLOW}  - Gunicorn (internal): Localhost-only port for Django backend${NC}"
+log ""
+read -p "$(echo -e "${YELLOW}Enter Nginx public port${NC}") [80]: " NGINX_PORT
+NGINX_PORT=${NGINX_PORT:-80}
+export NGINX_PORT
+log "${GREEN}✓ Nginx public port: $NGINX_PORT${NC}"
+
+# Gunicorn internal port
+read -p "$(echo -e "${YELLOW}Enter Gunicorn internal port${NC}") [8000]: " GUNICORN_PORT
+GUNICORN_PORT=${GUNICORN_PORT:-8000}
+export GUNICORN_PORT
+log "${GREEN}✓ Gunicorn internal port: $GUNICORN_PORT${NC}"
+
+# For backward compatibility with .env and scripts
+export SERVER_PORT=$GUNICORN_PORT
 
 # Test mode
 read -p "$(echo -e "${YELLOW}Enable TEST MODE?${NC}") (y/n) [n]: " TEST_MODE_INPUT
@@ -525,7 +539,8 @@ log "  Project Directory: $PROJECT_DIR"
 log "  Virtual Environment: $VENV_PATH"
 log "  Database: $DB_NAME"
 log "  Database User: $DB_USER"
-log "  Server Port: $SERVER_PORT"
+log "  Nginx Port (public): $NGINX_PORT"
+log "  Gunicorn Port (internal): $GUNICORN_PORT"
 log "  Test Mode: $ZK_TEST_MODE"
 log "  Allowed Hosts: $ALLOWED_HOSTS"
 log "  Deployment Log: $LOG_FILE"
@@ -547,9 +562,15 @@ log "  Restart django-q:    ${BLUE}sudo systemctl restart django-q${NC}"
 log "  Restart nginx:       ${BLUE}sudo systemctl restart nginx${NC}"
 log ""
 log "${YELLOW}Application Access:${NC}"
-log "  Main application:    ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1)/${NC}"
-log "  Admin panel:         ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1)/admin${NC}"
-log "  Static files:        ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1)/static/${NC}"
+if [ "$NGINX_PORT" -eq 80 ]; then
+    log "  Main application:    ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1)/${NC}"
+    log "  Admin panel:         ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1)/admin${NC}"
+    log "  Static files:        ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1)/static/${NC}"
+else
+    log "  Main application:    ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1):$NGINX_PORT/${NC}"
+    log "  Admin panel:         ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1):$NGINX_PORT/admin${NC}"
+    log "  Static files:        ${BLUE}http://$(echo $ALLOWED_HOSTS | cut -d',' -f1):$NGINX_PORT/static/${NC}"
+fi
 log ""
 log "${YELLOW}Development:${NC}"
 log "  Activate venv:       ${BLUE}source $VENV_PATH/bin/activate${NC}"
@@ -559,8 +580,8 @@ log "  Apply migrations:    ${BLUE}python manage.py migrate${NC}"
 log "  Collect static:      ${BLUE}python manage.py collectstatic${NC}"
 log ""
 log "${YELLOW}Important Notes:${NC}"
-log "  - Nginx runs on port 80 (HTTP) and proxies to Gunicorn on localhost:$SERVER_PORT"
-log "  - Gunicorn serves Django on localhost:$SERVER_PORT (not publicly exposed)"
+log "  - Nginx runs on port $NGINX_PORT (public) and proxies to Gunicorn on localhost:$GUNICORN_PORT"
+log "  - Gunicorn serves Django on localhost:$GUNICORN_PORT (not publicly exposed)"
 log "  - Django-Q2 processes background tasks (employee sync, attendance download)"
 log "  - All services run as user: $([ -n "$SUDO_USER" ] && echo "$SUDO_USER" || echo "$(whoami)")"
 log ""

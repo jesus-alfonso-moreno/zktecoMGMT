@@ -13,65 +13,111 @@ log() {
 log "${YELLOW}=== Starting RHEL/AlmaLinux/Fedora Specific Configuration ===${NC}"
 
 # =============================================================================
-# Step 1: Install PostgreSQL Server and Development Libraries
+# Step 1: Check if PostgreSQL is Already Running
 # =============================================================================
-log "${YELLOW}Installing PostgreSQL server and development libraries...${NC}"
+log "${YELLOW}Checking PostgreSQL status...${NC}"
 
-sudo dnf install -y \
-    postgresql-server \
-    postgresql-contrib \
-    postgresql-server-devel \
-    python3-devel \
-    gcc
+POSTGRES_RUNNING=false
+POSTGRES_INSTALLED=false
 
-if [ $? -eq 0 ]; then
-    log "${GREEN}✓ PostgreSQL packages installed successfully${NC}"
+# Check if PostgreSQL is installed
+if command -v psql &> /dev/null; then
+    POSTGRES_INSTALLED=true
+    log "${GREEN}✓ PostgreSQL is already installed${NC}"
+
+    # Check if PostgreSQL service is running
+    if systemctl is-active --quiet postgresql; then
+        POSTGRES_RUNNING=true
+        log "${GREEN}✓ PostgreSQL service is already running${NC}"
+    else
+        log "${YELLOW}~ PostgreSQL is installed but not running${NC}"
+    fi
 else
-    log "${RED}✗ Failed to install PostgreSQL packages${NC}"
-    exit 1
+    log "${YELLOW}~ PostgreSQL is not installed${NC}"
 fi
 
 # =============================================================================
-# Step 2: Initialize PostgreSQL Database (RHEL specific)
+# Step 2: Install PostgreSQL Server and Development Libraries (if needed)
 # =============================================================================
-log "${YELLOW}Initializing PostgreSQL database cluster...${NC}"
+if [ "$POSTGRES_INSTALLED" = false ]; then
+    log "${YELLOW}Installing PostgreSQL server and development libraries...${NC}"
 
-# Check if already initialized
-if sudo test -f /var/lib/pgsql/data/PG_VERSION; then
-    log "${GREEN}✓ PostgreSQL database already initialized${NC}"
-else
-    log "${YELLOW}Initializing PostgreSQL...${NC}"
-
-    # Remove incomplete directory if exists
-    if sudo test -d /var/lib/pgsql/data; then
-        log "${YELLOW}Removing incomplete data directory...${NC}"
-        sudo rm -rf /var/lib/pgsql/data
-    fi
-
-    # Initialize database
-    sudo postgresql-setup --initdb
+    sudo dnf install -y \
+        postgresql-server \
+        postgresql-contrib \
+        postgresql-server-devel \
+        python3-devel \
+        gcc
 
     if [ $? -eq 0 ]; then
-        log "${GREEN}✓ PostgreSQL initialized successfully${NC}"
+        log "${GREEN}✓ PostgreSQL packages installed successfully${NC}"
+        POSTGRES_INSTALLED=true
     else
-        log "${RED}✗ Failed to initialize PostgreSQL${NC}"
+        log "${RED}✗ Failed to install PostgreSQL packages${NC}"
+        exit 1
+    fi
+else
+    log "${GREEN}✓ Skipping PostgreSQL installation - already installed${NC}"
+
+    # Still ensure development libraries are present
+    log "${YELLOW}Ensuring development libraries are installed...${NC}"
+    sudo dnf install -y \
+        postgresql-server-devel \
+        python3-devel \
+        gcc > /dev/null 2>&1
+
+    if [ $? -eq 0 ]; then
+        log "${GREEN}✓ Development libraries verified${NC}"
+    fi
+fi
+
+# =============================================================================
+# Step 3: Initialize PostgreSQL Database (RHEL specific)
+# =============================================================================
+if [ "$POSTGRES_RUNNING" = true ]; then
+    log "${GREEN}✓ Skipping PostgreSQL initialization - service already running${NC}"
+else
+    log "${YELLOW}Initializing PostgreSQL database cluster...${NC}"
+
+    # Check if already initialized
+    if sudo test -f /var/lib/pgsql/data/PG_VERSION; then
+        log "${GREEN}✓ PostgreSQL database already initialized${NC}"
+    else
+        log "${YELLOW}Initializing PostgreSQL...${NC}"
+
+        # Remove incomplete directory if exists
+        if sudo test -d /var/lib/pgsql/data; then
+            log "${YELLOW}Removing incomplete data directory...${NC}"
+            sudo rm -rf /var/lib/pgsql/data
+        fi
+
+        # Initialize database
+        sudo postgresql-setup --initdb
+
+        if [ $? -eq 0 ]; then
+            log "${GREEN}✓ PostgreSQL initialized successfully${NC}"
+        else
+            log "${RED}✗ Failed to initialize PostgreSQL${NC}"
+            exit 1
+        fi
+    fi
+
+    # Start and enable PostgreSQL
+    log "${YELLOW}Starting PostgreSQL service...${NC}"
+    sudo systemctl start postgresql
+    sudo systemctl enable postgresql
+
+    if [ $? -eq 0 ]; then
+        log "${GREEN}✓ PostgreSQL service started and enabled${NC}"
+        POSTGRES_RUNNING=true
+    else
+        log "${RED}✗ Failed to start PostgreSQL service${NC}"
         exit 1
     fi
 fi
 
-# Start and enable PostgreSQL
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
-
-if [ $? -eq 0 ]; then
-    log "${GREEN}✓ PostgreSQL service started and enabled${NC}"
-else
-    log "${RED}✗ Failed to start PostgreSQL service${NC}"
-    exit 1
-fi
-
 # =============================================================================
-# Step 3: Configure PostgreSQL Authentication (pg_hba.conf)
+# Step 4: Configure PostgreSQL Authentication (pg_hba.conf)
 # =============================================================================
 log "${YELLOW}Configuring PostgreSQL authentication...${NC}"
 
@@ -80,14 +126,18 @@ PG_HBA_CONF="/var/lib/pgsql/data/pg_hba.conf"
 if [ -f "$PG_HBA_CONF" ]; then
     log "${GREEN}✓ Found pg_hba.conf at: $PG_HBA_CONF${NC}"
 
-    # Backup original
-    sudo cp "$PG_HBA_CONF" "${PG_HBA_CONF}.backup.$(date +%Y%m%d_%H%M%S)"
+    # Check if already configured with md5 authentication
+    if grep -q "^local.*all.*all.*md5" "$PG_HBA_CONF"; then
+        log "${GREEN}✓ pg_hba.conf already configured with md5 authentication${NC}"
+    else
+        log "${YELLOW}Updating pg_hba.conf configuration...${NC}"
 
-    # Configure authentication properly
-    log "${YELLOW}Configuring PostgreSQL authentication...${NC}"
+        # Backup original
+        sudo cp "$PG_HBA_CONF" "${PG_HBA_CONF}.backup.$(date +%Y%m%d_%H%M%S)"
+        log "${GREEN}✓ Created backup: ${PG_HBA_CONF}.backup.$(date +%Y%m%d_%H%M%S)${NC}"
 
-    # Create a new pg_hba.conf with proper authentication rules
-    sudo tee "$PG_HBA_CONF" > /dev/null << 'HBAEOF'
+        # Create a new pg_hba.conf with proper authentication rules
+        sudo tee "$PG_HBA_CONF" > /dev/null << 'HBAEOF'
 # PostgreSQL Client Authentication Configuration File
 # TYPE  DATABASE        USER            ADDRESS                 METHOD
 
@@ -108,14 +158,15 @@ host    replication     all             127.0.0.1/32            ident
 host    replication     all             ::1/128                 ident
 HBAEOF
 
-    # Reload PostgreSQL to apply changes
-    sudo systemctl reload postgresql
+        # Reload PostgreSQL to apply changes
+        sudo systemctl reload postgresql
 
-    if [ $? -eq 0 ]; then
-        log "${GREEN}✓ PostgreSQL authentication configured (md5)${NC}"
-    else
-        log "${RED}✗ Failed to reload PostgreSQL${NC}"
-        exit 1
+        if [ $? -eq 0 ]; then
+            log "${GREEN}✓ PostgreSQL authentication configured (md5)${NC}"
+        else
+            log "${RED}✗ Failed to reload PostgreSQL${NC}"
+            exit 1
+        fi
     fi
 else
     log "${RED}✗ Could not find pg_hba.conf at $PG_HBA_CONF${NC}"
@@ -123,7 +174,7 @@ else
 fi
 
 # =============================================================================
-# Step 4: Create PostgreSQL Database and User
+# Step 5: Create PostgreSQL Database and User
 # =============================================================================
 log "${YELLOW}Setting up PostgreSQL database and user...${NC}"
 
@@ -187,7 +238,7 @@ EOF
 fi
 
 # =============================================================================
-# Step 5: Configure Gunicorn Systemd Service
+# Step 6: Configure Gunicorn Systemd Service
 # =============================================================================
 log "${YELLOW}Configuring gunicorn systemd service...${NC}"
 
@@ -255,7 +306,7 @@ else
 fi
 
 # =============================================================================
-# Step 6: Configure Django-Q2 Systemd Service
+# Step 7: Configure Django-Q2 Systemd Service
 # =============================================================================
 log "${YELLOW}Configuring Django-Q2 worker service...${NC}"
 
@@ -312,7 +363,7 @@ else
 fi
 
 # =============================================================================
-# Step 7: Install and Configure Nginx
+# Step 8: Install and Configure Nginx
 # =============================================================================
 log "${YELLOW}Installing and configuring Nginx...${NC}"
 
@@ -333,7 +384,7 @@ log "${YELLOW}Creating Nginx configuration at $NGINX_CONF...${NC}"
 
 sudo tee "$NGINX_CONF" > /dev/null << EOF
 server {
-    listen 80;
+    listen $NGINX_PORT;
     server_name _;
 
     client_max_body_size 20M;
@@ -351,9 +402,9 @@ server {
         expires 7d;
     }
 
-    # Proxy to Gunicorn
+    # Proxy to Gunicorn (internal port)
     location / {
-        proxy_pass http://127.0.0.1:$SERVER_PORT;
+        proxy_pass http://127.0.0.1:$GUNICORN_PORT;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -384,7 +435,7 @@ else
 fi
 
 # =============================================================================
-# Step 8: Configure SELinux
+# Step 9: Configure SELinux
 # =============================================================================
 log "${YELLOW}Configuring SELinux contexts...${NC}"
 
@@ -412,7 +463,7 @@ else
 fi
 
 # =============================================================================
-# Step 9: Configure Firewalld
+# Step 10: Configure Firewalld
 # =============================================================================
 log "${YELLOW}Configuring firewall (firewalld)...${NC}"
 
@@ -422,20 +473,34 @@ if command -v firewall-cmd &> /dev/null; then
     if sudo systemctl is-active --quiet firewalld; then
         log "${GREEN}✓ firewalld is active${NC}"
 
-        # Allow HTTP
-        if sudo firewall-cmd --list-services | grep -q http; then
-            log "${GREEN}✓ HTTP already allowed in firewall${NC}"
-        else
-            sudo firewall-cmd --permanent --add-service=http
-            log "${GREEN}✓ Added HTTP to firewall${NC}"
-        fi
+        # Handle standard ports (80/443) vs custom ports
+        if [ "$NGINX_PORT" -eq 80 ] || [ "$NGINX_PORT" -eq 443 ]; then
+            # Standard HTTP/HTTPS ports
+            if [ "$NGINX_PORT" -eq 80 ]; then
+                if sudo firewall-cmd --list-services | grep -q http; then
+                    log "${GREEN}✓ HTTP (port 80) already allowed in firewall${NC}"
+                else
+                    sudo firewall-cmd --permanent --add-service=http
+                    log "${GREEN}✓ Added HTTP (port 80) to firewall${NC}"
+                fi
+            fi
 
-        # Allow HTTPS
-        if sudo firewall-cmd --list-services | grep -q https; then
-            log "${GREEN}✓ HTTPS already allowed in firewall${NC}"
+            if [ "$NGINX_PORT" -eq 443 ]; then
+                if sudo firewall-cmd --list-services | grep -q https; then
+                    log "${GREEN}✓ HTTPS (port 443) already allowed in firewall${NC}"
+                else
+                    sudo firewall-cmd --permanent --add-service=https
+                    log "${GREEN}✓ Added HTTPS (port 443) to firewall${NC}"
+                fi
+            fi
         else
-            sudo firewall-cmd --permanent --add-service=https
-            log "${GREEN}✓ Added HTTPS to firewall${NC}"
+            # Custom port
+            if sudo firewall-cmd --list-ports | grep -q "$NGINX_PORT/tcp"; then
+                log "${GREEN}✓ Port $NGINX_PORT already allowed in firewall${NC}"
+            else
+                sudo firewall-cmd --permanent --add-port=$NGINX_PORT/tcp
+                log "${GREEN}✓ Added port $NGINX_PORT/tcp to firewall${NC}"
+            fi
         fi
 
         # Reload firewall
@@ -454,21 +519,26 @@ if command -v firewall-cmd &> /dev/null; then
             sudo systemctl start firewalld
             sudo systemctl enable firewalld
 
-            # Add HTTP/HTTPS
-            sudo firewall-cmd --permanent --add-service=http
-            sudo firewall-cmd --permanent --add-service=https
+            # Add appropriate port
+            if [ "$NGINX_PORT" -eq 80 ]; then
+                sudo firewall-cmd --permanent --add-service=http
+            elif [ "$NGINX_PORT" -eq 443 ]; then
+                sudo firewall-cmd --permanent --add-service=https
+            else
+                sudo firewall-cmd --permanent --add-port=$NGINX_PORT/tcp
+            fi
             sudo firewall-cmd --reload
 
-            log "${GREEN}✓ firewalld enabled and configured${NC}"
+            log "${GREEN}✓ firewalld enabled and configured for port $NGINX_PORT${NC}"
         fi
     fi
 else
     log "${YELLOW}~ firewalld not installed - skipping firewall configuration${NC}"
-    log "${YELLOW}  You may need to manually configure your firewall to allow HTTP (port 80)${NC}"
+    log "${YELLOW}  You may need to manually configure your firewall to allow port $NGINX_PORT${NC}"
 fi
 
 # =============================================================================
-# Step 10: Start and Enable Services
+# Step 11: Start and Enable Services
 # =============================================================================
 log ""
 log "${YELLOW}Starting and enabling all services...${NC}"
