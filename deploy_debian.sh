@@ -384,6 +384,13 @@ if [ -f "/etc/nginx/sites-enabled/zkteco.conf" ]; then
     sudo rm /etc/nginx/sites-enabled/zkteco.conf
 fi
 
+# Disable default Nginx site to avoid port conflicts
+if [ -L /etc/nginx/sites-enabled/default ]; then
+    log "${YELLOW}Removing default Nginx site...${NC}"
+    sudo rm /etc/nginx/sites-enabled/default
+    log "${GREEN}✓ Default Nginx site disabled${NC}"
+fi
+
 sudo ln -s /etc/nginx/sites-available/zkteco.conf /etc/nginx/sites-enabled/
 log "${GREEN}✓ Nginx site enabled${NC}"
 
